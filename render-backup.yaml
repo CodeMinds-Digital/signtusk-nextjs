@@ -1,0 +1,44 @@
+# Alternative render.yaml configurations to try if main one fails
+
+# Option 1: Minimal
+services:
+  - type: web
+    name: signtusk-nextjs
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+
+# Option 2: With cache clear
+# services:
+#   - type: web
+#     name: signtusk-nextjs
+#     env: node
+#     buildCommand: npm cache clean --force && npm install && npm run build
+#     startCommand: npm start
+#     envVars:
+#       - key: NODE_ENV
+#         value: production
+
+# Option 3: With memory allocation
+# services:
+#   - type: web
+#     name: signtusk-nextjs
+#     env: node
+#     buildCommand: npm install && npm run build
+#     startCommand: npm start
+#     envVars:
+#       - key: NODE_ENV
+#         value: production
+#       - key: NODE_OPTIONS
+#         value: "--max-old-space-size=4096"
+
+# Option 4: Force clean install
+# services:
+#   - type: web
+#     name: signtusk-nextjs
+#     env: node
+#     buildCommand: rm -rf node_modules package-lock.json && npm install && npm run build
+#     startCommand: npm start
+#     envVars:
+#       - key: NODE_ENV
+#         value: production

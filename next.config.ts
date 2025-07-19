@@ -8,9 +8,6 @@ const nextConfig: NextConfig = {
   
   // Enable compression
   compress: true,
-  
-  // Enable static optimization where possible
-  output: 'standalone',
 };
 
 export default nextConfig;

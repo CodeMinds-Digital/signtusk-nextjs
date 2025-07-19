@@ -2,23 +2,12 @@ services:
   - type: web
     name: signtusk-nextjs
     env: node
-    region: oregon
-    plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm start
-    buildFilter:
-      paths:
-      - src/**
-      - public/**
-      - package*.json
-      - next.config.*
-      - tsconfig.json
-      - tailwind.config.*
-      - postcss.config.*
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
-      - key: NEXT_TELEMETRY_DISABLED
-        value: 1
+      - key: NPM_CONFIG_PRODUCTION
+        value: false
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=4096"
