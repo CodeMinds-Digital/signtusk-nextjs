@@ -2,8 +2,9 @@ services:
   - type: web
     name: signtusk-nextjs
     env: node
-    buildCommand: ./build.sh
-    startCommand: npm start
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
@@ -11,4 +12,3 @@ services:
         value: 10000
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
-    healthCheckPath: /
