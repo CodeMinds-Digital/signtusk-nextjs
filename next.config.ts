@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/webp', 'image/avif'],
   },
-  output: 'export',
   // Enable compression
   compress: true,
 };
