@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Simple in-memory storage for demo purposes
 // In production, use a proper database or IPFS
-const profiles = new Map<string, any>();
+interface ProfileData {
+  encryptedProfile: string;
+  timestamp: number;
+  signature?: string;
+}
+
+const profiles = new Map<string, ProfileData>();
 
 export async function POST(request: NextRequest) {
   try {

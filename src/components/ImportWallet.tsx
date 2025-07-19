@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic } from '@/lib/wallet';
+import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic, WalletData } from '@/lib/wallet';
 import { storeEncryptedWallet, storeSession } from '@/lib/storage';
 import { useWallet } from '@/contexts/WalletContext';
 
@@ -15,7 +15,7 @@ export default function ImportWallet() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [importedWallet, setImportedWallet] = useState<any>(null);
+  const [importedWallet, setImportedWallet] = useState<WalletData | null>(null);
 
   const validatePassword = (pwd: string): boolean => {
     return pwd.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(pwd);
@@ -65,8 +65,9 @@ export default function ImportWallet() {
       setWallet(walletData);
       setImportedWallet(walletData);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to import signing identity');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to import signing identity';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +87,7 @@ export default function ImportWallet() {
     try {
       const text = await navigator.clipboard.readText();
       setMnemonic(text);
-    } catch (err) {
+    } catch {
       setError('Failed to paste from clipboard');
     }
   };
@@ -227,9 +228,9 @@ export default function ImportWallet() {
           </div>
           <ul className="text-sm text-yellow-300 space-y-1">
             <li>• Never enter your recovery phrase on untrusted websites</li>
-            <li>• Make sure you're on the correct URL and using HTTPS</li>
+            <li>• Make sure you&apos;re on the correct URL and using HTTPS</li>
             <li>• Your recovery phrase will be encrypted and stored locally</li>
-            <li>• Clear your browser's form data after importing for extra security</li>
+            <li>• Clear your browser&apos;s form data after importing for extra security</li>
           </ul>
         </div>
       </div>

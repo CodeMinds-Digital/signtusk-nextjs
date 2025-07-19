@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { decryptWallet, getRandomWordsForVerification, verifyMnemonicWords } from '@/lib/wallet';
+import { decryptWallet, getRandomWordsForVerification, verifyMnemonicWords, WalletData } from '@/lib/wallet';
 import { getEncryptedWallet, storeSession } from '@/lib/storage';
 import { useWallet } from '@/contexts/WalletContext';
 
@@ -13,7 +13,7 @@ export default function LoginFlow() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<LoginStep>('password');
   const [password, setPassword] = useState('');
-  const [walletData, setWalletData] = useState<any>(null);
+  const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [verificationWords, setVerificationWords] = useState<Array<{index: number, word: string}>>([]);
   const [userVerificationInputs, setUserVerificationInputs] = useState<string[]>([]);
   const [error, setError] = useState('');
@@ -46,7 +46,7 @@ export default function LoginFlow() {
       setVerificationWords(randomWords);
       setUserVerificationInputs(new Array(3).fill(''));
       setCurrentStep('mnemonic-verify');
-    } catch (err) {
+    } catch {
       setError('Invalid password or corrupted wallet data');
     } finally {
       setIsLoading(false);
@@ -64,7 +64,7 @@ export default function LoginFlow() {
     }));
 
     // Verify the words
-    if (!verifyMnemonicWords(walletData.mnemonic, userWords)) {
+    if (!walletData || !verifyMnemonicWords(walletData.mnemonic, userWords)) {
       setError('Verification failed. Please check the words and try again.');
       return;
     }
@@ -72,7 +72,7 @@ export default function LoginFlow() {
     await completeLogin(walletData);
   };
 
-  const completeLogin = async (wallet: any) => {
+  const completeLogin = async (wallet: WalletData) => {
     setIsLoading(true);
     try {
       // Create session
@@ -82,7 +82,7 @@ export default function LoginFlow() {
       setWallet(wallet);
       
       setCurrentStep('complete');
-    } catch (err) {
+    } catch {
       setError('Failed to create session');
     } finally {
       setIsLoading(false);
@@ -129,7 +129,7 @@ export default function LoginFlow() {
 
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-400">
-          Don't have a wallet?{' '}
+          Don&apos;t have a wallet?{' '}
           <button
             onClick={() => router.push('/signup')}
             className="text-purple-400 hover:text-purple-300 font-medium"

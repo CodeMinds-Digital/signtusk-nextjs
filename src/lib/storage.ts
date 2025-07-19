@@ -11,7 +11,7 @@ export function storeEncryptedWallet(encryptedWallet: EncryptedWallet): void {
   
   try {
     localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(encryptedWallet));
-  } catch (error) {
+  } catch {
     throw new Error('Failed to store wallet data');
   }
 }

@@ -1,5 +1,4 @@
 import * as bip39 from 'bip39';
-import { HDKey } from '@scure/bip32';
 import { Wallet } from 'ethers';
 import CryptoJS from 'crypto-js';
 
@@ -141,7 +140,7 @@ export function decryptWallet(encryptedWallet: EncryptedWallet, password: string
       mnemonic: decryptedMnemonic,
       customId: encryptedWallet.customId
     };
-  } catch (error) {
+  } catch {
     throw new Error('Invalid password or corrupted wallet data');
   }
 }

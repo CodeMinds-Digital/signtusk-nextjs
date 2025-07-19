@@ -9,7 +9,11 @@ export default function Dashboard() {
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [searchId, setSearchId] = useState('');
-  const [searchResult, setSearchResult] = useState<any>(null);
+  const [searchResult, setSearchResult] = useState<{
+    customId: string;
+    address?: string;
+    found: boolean;
+  } | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = () => {

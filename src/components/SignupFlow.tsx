@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { generateWallet, encryptWallet, getRandomWordsForVerification, verifyMnemonicWords } from '@/lib/wallet';
+import { generateWallet, encryptWallet, getRandomWordsForVerification, verifyMnemonicWords, WalletData } from '@/lib/wallet';
 import { storeEncryptedWallet, storeSession } from '@/lib/storage';
 import { useWallet } from '@/contexts/WalletContext';
 
@@ -14,7 +14,7 @@ export default function SignupFlow() {
   const [currentStep, setCurrentStep] = useState<SignupStep>('password');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [walletData, setWalletData] = useState<any>(null);
+  const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [mnemonicWordCount, setMnemonicWordCount] = useState<12 | 24>(12);
   const [verificationWords, setVerificationWords] = useState<Array<{index: number, word: string}>>([]);
   const [userVerificationInputs, setUserVerificationInputs] = useState<string[]>([]);
@@ -45,7 +45,7 @@ export default function SignupFlow() {
       const newWallet = generateWallet(mnemonicWordCount);
       setWalletData(newWallet);
       setCurrentStep('mnemonic-display');
-    } catch (err) {
+    } catch {
       setError('Failed to generate signing identity');
     } finally {
       setIsLoading(false);
@@ -53,6 +53,7 @@ export default function SignupFlow() {
   };
 
   const handleMnemonicConfirm = () => {
+    if (!walletData) return;
     // Generate random words for verification
     const randomWords = getRandomWordsForVerification(walletData.mnemonic, 3);
     setVerificationWords(randomWords);
@@ -71,7 +72,7 @@ export default function SignupFlow() {
     }));
 
     // Verify the words
-    if (!verifyMnemonicWords(walletData.mnemonic, userWords)) {
+    if (!walletData || !verifyMnemonicWords(walletData.mnemonic, userWords)) {
       setError('Verification failed. Please check the words and try again.');
       return;
     }
@@ -89,7 +90,7 @@ export default function SignupFlow() {
       setWallet(walletData);
       
       setCurrentStep('complete');
-    } catch (err) {
+    } catch {
       setError('Failed to save signing identity');
     } finally {
       setIsLoading(false);
@@ -196,7 +197,7 @@ export default function SignupFlow() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
-        {walletData.mnemonic.split(' ').map((word: string, index: number) => (
+        {walletData?.mnemonic.split(' ').map((word: string, index: number) => (
           <div key={index} className="flex items-center space-x-2 p-2 bg-white/10 rounded border border-white/20">
             <span className="text-xs text-gray-400 w-6">{index + 1}.</span>
             <span className="font-mono text-gray-300">{word}</span>
@@ -206,7 +207,7 @@ export default function SignupFlow() {
 
       <div className="flex space-x-4">
         <button
-          onClick={() => copyToClipboard(walletData.mnemonic)}
+          onClick={() => walletData && copyToClipboard(walletData.mnemonic)}
           className="flex-1 bg-white/10 backdrop-blur-sm text-white p-3 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20"
         >
           Copy to Clipboard
@@ -215,7 +216,7 @@ export default function SignupFlow() {
           onClick={handleMnemonicConfirm}
           className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
         >
-          I've Saved It Securely
+          I&apos;ve Saved It Securely
         </button>
       </div>
     </div>
@@ -226,7 +227,7 @@ export default function SignupFlow() {
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Verify Your Recovery Phrase</h2>
       
       <p className="text-gray-300 mb-6 text-center">
-        Please enter the following words from your recovery phrase to confirm you've saved it correctly.
+        Please enter the following words from your recovery phrase to confirm you&apos;ve saved it correctly.
       </p>
 
       <form onSubmit={handleVerificationSubmit} className="space-y-4">
@@ -283,9 +284,9 @@ export default function SignupFlow() {
       
       <div className="bg-white/5 p-4 rounded-lg mb-6 border border-white/10">
         <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
-        <p className="font-mono text-lg text-purple-400 mb-3">{walletData.customId}</p>
+        <p className="font-mono text-lg text-purple-400 mb-3">{walletData?.customId}</p>
         <p className="text-sm text-gray-400 mb-2">Your Signing Address:</p>
-        <p className="font-mono text-sm break-all text-gray-300">{walletData.address}</p>
+        <p className="font-mono text-sm break-all text-gray-300">{walletData?.address}</p>
       </div>
 
       <p className="text-gray-300 mb-6">
