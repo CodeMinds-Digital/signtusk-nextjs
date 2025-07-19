@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Temporarily disable static export for development
-  output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
-
+  // Disable static export to allow API routes to work in production
+  // output: 'export', // Commented out to enable server-side functionality
+  
   // Fix cross-origin issues in development
   allowedDevOrigins: [
     '192.168.1.4:3000',
@@ -11,19 +11,19 @@ const nextConfig: NextConfig = {
     '127.0.0.1:3000',
     '0.0.0.0:3000'
   ],
-
+  
   // Optimize images
   images: {
     formats: ['image/webp', 'image/avif'],
-    unoptimized: process.env.NODE_ENV === 'production', // Required for static export
+    // unoptimized: true, // Only needed for static export
   },
-
+  
   // Enable compression
   compress: true,
-
-  // Configure trailing slash for static export
-  trailingSlash: process.env.NODE_ENV === 'production',
-  skipTrailingSlashRedirect: process.env.NODE_ENV === 'production',
+  
+  // Configure for server deployment
+  // trailingSlash: false, // Default behavior for server deployment
+  // skipTrailingSlashRedirect: false, // Default behavior for server deployment
 };
 
 export default nextConfig;
