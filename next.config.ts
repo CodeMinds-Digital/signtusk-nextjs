@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Optimize images
+  images: {
+    formats: ['image/webp', 'image/avif'],
+  },
+  
+  // Enable compression
+  compress: true,
+  
+  // Enable static optimization where possible
+  output: 'standalone',
 };
 
 export default nextConfig;

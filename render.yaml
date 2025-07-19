@@ -6,8 +6,19 @@ services:
     plan: free
     buildCommand: npm ci && npm run build
     startCommand: npm start
+    buildFilter:
+      paths:
+      - src/**
+      - public/**
+      - package*.json
+      - next.config.*
+      - tsconfig.json
+      - tailwind.config.*
+      - postcss.config.*
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: NEXT_TELEMETRY_DISABLED
+        value: 1
