@@ -2,8 +2,10 @@ services:
   - type: web
     name: signtusk-nextjs
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: bash scripts/build.sh
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DISABLE_YARN
+        value: "true"
