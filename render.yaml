@@ -2,10 +2,13 @@ services:
   - type: web
     name: signtusk-nextjs
     env: node
-    buildCommand: bash scripts/build.sh
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DISABLE_YARN
-        value: "true"
+      - key: PORT
+        value: 10000
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+    healthCheckPath: /

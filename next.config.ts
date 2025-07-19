@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable static export to allow API routes to work in production
-  // output: 'export', // Commented out to enable server-side functionality
+  // Standalone output for optimized deployment
+  output: 'standalone',
   
   // Fix cross-origin issues in development
   allowedDevOrigins: [
@@ -12,18 +12,19 @@ const nextConfig: NextConfig = {
     '0.0.0.0:3000'
   ],
   
-  // Optimize images
+  // Optimize images for production
   images: {
     formats: ['image/webp', 'image/avif'],
-    // unoptimized: true, // Only needed for static export
   },
   
   // Enable compression
   compress: true,
   
-  // Configure for server deployment
-  // trailingSlash: false, // Default behavior for server deployment
-  // skipTrailingSlashRedirect: false, // Default behavior for server deployment
+  // Production optimizations
+  poweredByHeader: false,
+  
+  // Ensure proper handling of trailing slashes
+  trailingSlash: false,
 };
 
 export default nextConfig;

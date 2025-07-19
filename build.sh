@@ -1,25 +1,14 @@
 #!/bin/bash
 
-# Build script for SignTusk Next.js app
-set -e  # Exit on any error
-
-echo "🚀 Starting SignTusk build process..."
-
-# Check Node.js version
-echo "📋 Checking Node.js version..."
-node --version
-npm --version
-
-# Clean previous build
-echo "🧹 Cleaning previous build..."
-rm -rf .next
+# Build script for Render deployment
+echo "Starting build process..."
 
 # Install dependencies
-echo "📦 Installing dependencies..."
+echo "Installing dependencies..."
 npm install
 
-# Run build
-echo "🔨 Building application..."
+# Build the application
+echo "Building Next.js application..."
 npm run build
 
-echo "✅ Build completed successfully!"
+echo "Build completed successfully!"
