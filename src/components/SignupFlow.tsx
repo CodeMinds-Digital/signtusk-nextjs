@@ -55,9 +55,9 @@ export default function SignupFlow() {
   const handleMnemonicConfirm = () => {
     if (!walletData) return;
     // Generate random words for verification
-    const randomWords = getRandomWordsForVerification(walletData.mnemonic, 3);
+    const randomWords = getRandomWordsForVerification(walletData.mnemonic);
     setVerificationWords(randomWords);
-    setUserVerificationInputs(new Array(3).fill(''));
+    setUserVerificationInputs(new Array(randomWords.length).fill(''));
     setCurrentStep('mnemonic-verify');
   };
 
@@ -229,6 +229,12 @@ export default function SignupFlow() {
       <p className="text-gray-300 mb-6 text-center">
         Please enter the following words from your recovery phrase to confirm you&apos;ve saved it correctly.
       </p>
+
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
+        <p className="text-blue-300 text-sm">
+          📝 Verifying {verificationWords.length} out of {walletData?.mnemonic.split(' ').length} words from your recovery phrase.
+        </p>
+      </div>
 
       <form onSubmit={handleVerificationSubmit} className="space-y-4">
         {verificationWords.map((wordData, index) => (

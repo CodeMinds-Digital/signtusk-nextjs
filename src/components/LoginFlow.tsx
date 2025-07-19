@@ -42,9 +42,9 @@ export default function LoginFlow() {
       setWalletData(decryptedWallet);
 
       // Always require mnemonic verification for security
-      const randomWords = getRandomWordsForVerification(decryptedWallet.mnemonic, 3);
+      const randomWords = getRandomWordsForVerification(decryptedWallet.mnemonic);
       setVerificationWords(randomWords);
-      setUserVerificationInputs(new Array(3).fill(''));
+      setUserVerificationInputs(new Array(randomWords.length).fill(''));
       setCurrentStep('mnemonic-verify');
     } catch {
       setError('Invalid password or corrupted wallet data');
@@ -148,6 +148,12 @@ export default function LoginFlow() {
       <p className="text-gray-300 mb-6 text-center">
         For your security, please enter the following words from your recovery phrase to complete login.
       </p>
+
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
+        <p className="text-blue-300 text-sm">
+          📝 Verifying {verificationWords.length} out of {walletData?.mnemonic.split(' ').length} words from your recovery phrase.
+        </p>
+      </div>
 
       <form onSubmit={handleMnemonicVerification} className="space-y-4">
         {verificationWords.map((wordData, index) => (

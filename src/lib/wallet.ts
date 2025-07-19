@@ -154,20 +154,38 @@ export function validateMnemonic(mnemonic: string): boolean {
 
 /**
  * Get random words from mnemonic for verification
+ * Automatically determines count based on mnemonic length:
+ * - 12 words: ask for 4 random words
+ * - 24 words: ask for 6 random words
  */
-export function getRandomWordsForVerification(mnemonic: string, count: number = 3): Array<{index: number, word: string}> {
+export function getRandomWordsForVerification(mnemonic: string, count?: number): Array<{index: number, word: string}> {
   const words = mnemonic.split(' ');
+  
+  // Determine verification count based on mnemonic length if not specified
+  let verificationCount = count;
+  if (!verificationCount) {
+    if (words.length === 12) {
+      verificationCount = 4; // Ask for 4 out of 12 words
+    } else if (words.length === 24) {
+      verificationCount = 6; // Ask for 6 out of 24 words
+    } else {
+      verificationCount = Math.min(3, words.length); // Fallback for other lengths
+    }
+  }
+  
   const indices = new Set<number>();
   
   // Generate unique random indices
-  while (indices.size < count) {
+  while (indices.size < verificationCount) {
     indices.add(Math.floor(Math.random() * words.length));
   }
   
-  return Array.from(indices).map(index => ({
-    index: index + 1, // 1-based indexing for user display
-    word: words[index]
-  }));
+  return Array.from(indices)
+    .sort((a, b) => a - b) // Sort indices for better UX
+    .map(index => ({
+      index: index + 1, // 1-based indexing for user display
+      word: words[index]
+    }));
 }
 
 /**
