@@ -174,7 +174,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-green-400 font-semibold mb-2">✅ Signer Found!</p>
                   <p className="text-gray-300">Signer ID: <span className="text-white font-mono">{searchResult.customId}</span></p>
-                  <p className="text-gray-300">Address: <span className="text-white font-mono text-sm">{searchResult.address}</span></p>
+                  <p className="text-gray-300">Address: <span className="text-white font-mono text-sm">{searchResult.address ? getChecksumAddress(searchResult.address) : ''}</span></p>
                 </div>
               ) : (
                 <p className="text-red-400">❌ No signer found with ID: <span className="font-mono">{searchResult.customId}</span></p>
@@ -191,7 +191,7 @@ export default function Dashboard() {
             <div className="bg-white/5 p-4 rounded-lg border border-white/10">
               <p className="font-mono text-sm break-all mb-3 text-gray-300">{getChecksumAddress(wallet.address)}</p>
               <button
-                onClick={() => copyToClipboard(wallet.address)}
+                onClick={() => copyToClipboard(getChecksumAddress(wallet.address))}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm"
               >
                 Copy Address

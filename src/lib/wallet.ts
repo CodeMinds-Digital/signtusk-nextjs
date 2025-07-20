@@ -214,9 +214,9 @@ export function normalizeAddress(address: string): string {
  */
 export function getChecksumAddress(address: string): string {
   try {
-    return getAddress(address);
+    return getAddress(address).toLowerCase();
   } catch {
-    return address; // Return original if invalid
+    return address.toLowerCase(); // Return original in lowercase if invalid
   }
 }
 
