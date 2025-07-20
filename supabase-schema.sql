@@ -13,19 +13,10 @@ CREATE TABLE IF NOT EXISTS wallets (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create challenges table for authentication nonces
-CREATE TABLE IF NOT EXISTS challenges (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  wallet_address TEXT NOT NULL,
-  nonce TEXT NOT NULL,
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Challenges table removed as it's not being used
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(wallet_address);
-CREATE INDEX IF NOT EXISTS idx_challenges_address ON challenges(wallet_address);
-CREATE INDEX IF NOT EXISTS idx_challenges_expires ON challenges(expires_at);
 
 -- Create function to extract wallet address from JWT
 -- Note: This function is created in the public schema since we don't have auth schema permissions
@@ -36,7 +27,6 @@ $ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for wallets table
 CREATE POLICY "Users can view their own wallet" ON wallets
@@ -51,15 +41,6 @@ CREATE POLICY "Users can update their own wallet" ON wallets
 CREATE POLICY "Users can delete their own wallet" ON wallets
   FOR DELETE USING (get_jwt_wallet_address() = wallet_address);
 
--- RLS Policies for challenges table
-CREATE POLICY "Users can view their own challenges" ON challenges
-  FOR SELECT USING (get_jwt_wallet_address() = wallet_address);
-
-CREATE POLICY "Users can insert their own challenges" ON challenges
-  FOR INSERT WITH CHECK (get_jwt_wallet_address() = wallet_address);
-
-CREATE POLICY "Users can delete their own challenges" ON challenges
-  FOR DELETE USING (get_jwt_wallet_address() = wallet_address);
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -76,16 +57,6 @@ CREATE TRIGGER update_wallets_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Create function to clean up expired challenges
-CREATE OR REPLACE FUNCTION cleanup_expired_challenges()
-RETURNS void AS $$
-BEGIN
-  DELETE FROM challenges WHERE expires_at < NOW();
-END;
-$$ LANGUAGE plpgsql;
-
--- Note: You may want to set up a cron job or scheduled function to periodically call cleanup_expired_challenges()
--- This can be done in Supabase using pg_cron extension or Edge Functions
 
 -- Grant necessary permissions (adjust as needed for your setup)
 -- These are typically handled automatically by Supabase, but included for completeness
@@ -96,6 +67,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   wallet_address TEXT UNIQUE NOT NULL REFERENCES wallets(wallet_address) ON DELETE CASCADE,
   display_name TEXT,
+  email TEXT,
+  mobile TEXT,
   avatar_url TEXT,
   bio TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

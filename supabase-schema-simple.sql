@@ -13,19 +13,10 @@ CREATE TABLE IF NOT EXISTS wallets (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create challenges table for authentication nonces
-CREATE TABLE IF NOT EXISTS challenges (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  wallet_address TEXT NOT NULL,
-  nonce TEXT NOT NULL,
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Challenges table removed as it's not being used
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(wallet_address);
-CREATE INDEX IF NOT EXISTS idx_challenges_address ON challenges(wallet_address);
-CREATE INDEX IF NOT EXISTS idx_challenges_expires ON challenges(expires_at);
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -42,19 +33,14 @@ CREATE TRIGGER update_wallets_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Create function to clean up expired challenges
-CREATE OR REPLACE FUNCTION cleanup_expired_challenges()
-RETURNS void AS $$
-BEGIN
-  DELETE FROM challenges WHERE expires_at < NOW();
-END;
-$$ LANGUAGE plpgsql;
 
 -- Example of additional table for user data (optional)
 CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   wallet_address TEXT UNIQUE NOT NULL REFERENCES wallets(wallet_address) ON DELETE CASCADE,
   display_name TEXT,
+  email TEXT,
+  mobile TEXT,
   avatar_url TEXT,
   bio TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
