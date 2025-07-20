@@ -37,21 +37,18 @@ export default function WalletLanding() {
               <h1 className="text-2xl font-bold text-white">SignTusk</h1>
             </div>
             <nav className="flex space-x-4">
-              {hasWallet ? (
-                <button
-                  onClick={() => router.push('/login')}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium"
-                >
-                  Login
-                </button>
-              ) : (
-                <button
-                  onClick={() => router.push('/signup')}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium"
-                >
-                  Get Started
-                </button>
-              )}
+              <button
+                onClick={() => router.push('/login')}
+                className="bg-white/10 backdrop-blur-sm text-white px-6 py-2 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20 font-medium"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => router.push('/signup')}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium"
+              >
+                Get Started
+              </button>
             </nav>
           </div>
         </div>
@@ -83,37 +80,26 @@ export default function WalletLanding() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
-            {hasWallet ? (
-              <>
-                <button
-                  onClick={() => router.push('/login')}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
-                >
-                  Access Your Signing Identity
-                </button>
-                <button
-                  onClick={() => router.push('/signup')}
-                  className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white/20 transition-all duration-200 border border-white/20"
-                >
-                  Create New Identity
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => router.push('/signup')}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
-                >
-                  Create Signing Identity
-                </button>
-                <button
-                  onClick={() => router.push('/import')}
-                  className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white/20 transition-all duration-200 border border-white/20"
-                >
-                  Import Existing Identity
-                </button>
-              </>
+            <button
+              onClick={() => router.push('/signup')}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
+            >
+              Create New Identity
+            </button>
+            {hasWallet && (
+              <button
+                onClick={() => router.push('/login')}
+                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white/20 transition-all duration-200 border border-white/20"
+              >
+                Login to Local Identity
+              </button>
             )}
+            <button
+              onClick={() => router.push('/import')}
+              className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white/20 transition-all duration-200 border border-white/20"
+            >
+              Import Existing Identity
+            </button>
           </div>
 
           {/* Features Grid */}

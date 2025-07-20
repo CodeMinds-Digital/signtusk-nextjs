@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
-import { removeStoredWallet } from '@/lib/storage';
+import { removeStoredWallet, deleteWalletFromDatabase } from '@/lib/storage';
+import { getChecksumAddress } from '@/lib/wallet';
 
 export default function Dashboard() {
-  const { wallet, logout } = useWallet();
+  const { wallet, currentUser, isAuthenticated, isLoading, logout } = useWallet();
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [searchId, setSearchId] = useState('');
@@ -24,11 +25,20 @@ export default function Dashboard() {
     window.location.href = '/logout';
   };
 
-  const handleDeleteWallet = () => {
+  const handleDeleteWallet = async () => {
     if (window.confirm('Are you sure you want to delete your signing identity? This action cannot be undone. Make sure you have your recovery phrase saved.')) {
-      removeStoredWallet();
-      logout();
-      window.location.href = '/delete-wallet';
+      try {
+        // Delete from Supabase database
+        await deleteWalletFromDatabase();
+        // Remove from local storage
+        removeStoredWallet();
+        // Logout and redirect
+        await logout();
+        window.location.href = '/delete-wallet';
+      } catch (error) {
+        console.error('Failed to delete wallet:', error);
+        alert('Failed to delete wallet. Please try again.');
+      }
     }
   };
 
@@ -179,7 +189,7 @@ export default function Dashboard() {
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6">
             <h2 className="text-xl font-bold text-white mb-4">Signing Address</h2>
             <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-              <p className="font-mono text-sm break-all mb-3 text-gray-300">{wallet.address}</p>
+              <p className="font-mono text-sm break-all mb-3 text-gray-300">{getChecksumAddress(wallet.address)}</p>
               <button
                 onClick={() => copyToClipboard(wallet.address)}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm"

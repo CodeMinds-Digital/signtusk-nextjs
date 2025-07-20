@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic, WalletData } from '@/lib/wallet';
-import { storeEncryptedWallet, storeSession } from '@/lib/storage';
+import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic, getChecksumAddress, WalletData } from '@/lib/wallet';
+import { storeEncryptedWallet } from '@/lib/multi-wallet-storage';
+import { getAuthChallenge, verifySignature } from '@/lib/storage';
+import { Wallet } from 'ethers';
 import { useWallet } from '@/contexts/WalletContext';
 
 export default function ImportWallet() {
@@ -54,12 +56,20 @@ export default function ImportWallet() {
       // Restore wallet from mnemonic
       const walletData = restoreWalletFromMnemonic(cleanMnemonic);
       
-      // Encrypt and store wallet
+      // Encrypt and store wallet locally
       const encryptedWallet = encryptWallet(walletData, password);
       storeEncryptedWallet(encryptedWallet);
       
-      // Create session
-      storeSession(walletData.address);
+      // Perform authentication to log the user in automatically
+      // Get fresh challenge and sign it
+      const nonce = await getAuthChallenge(walletData.address);
+      
+      // Create wallet instance for signing
+      const wallet = new Wallet(walletData.privateKey);
+      const signature = await wallet.signMessage(nonce);
+
+      // Verify signature with server to establish session
+      await verifySignature(walletData.address, signature);
       
       // Set wallet in context
       setWallet(walletData);
@@ -103,7 +113,7 @@ export default function ImportWallet() {
             <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
             <p className="font-mono text-lg text-purple-400 mb-3">{importedWallet.customId}</p>
             <p className="text-sm text-gray-400 mb-2">Your Signing Address:</p>
-            <p className="font-mono text-sm break-all text-gray-300">{importedWallet.address}</p>
+            <p className="font-mono text-sm break-all text-gray-300">{getChecksumAddress(importedWallet.address)}</p>
           </div>
 
           <p className="text-gray-300 mb-6">

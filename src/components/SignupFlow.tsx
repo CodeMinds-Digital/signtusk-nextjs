@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { generateWallet, encryptWallet, getRandomWordsForVerification, verifyMnemonicWords, WalletData } from '@/lib/wallet';
-import { storeEncryptedWallet, storeSession } from '@/lib/storage';
+import { generateWallet, encryptWallet, getRandomWordsForVerification, verifyMnemonicWords, getChecksumAddress, WalletData } from '@/lib/wallet';
+import { storeEncryptedWallet } from '@/lib/multi-wallet-storage';
+import { createWalletInDatabase, getAuthChallenge, verifySignature } from '@/lib/storage';
+import { Wallet } from 'ethers';
 import { useWallet } from '@/contexts/WalletContext';
 
 type SignupStep = 'password' | 'mnemonic-display' | 'mnemonic-verify' | 'complete';
@@ -79,19 +81,33 @@ export default function SignupFlow() {
 
     setIsLoading(true);
     try {
-      // Encrypt and store wallet
+      // Encrypt wallet
       const encryptedWallet = encryptWallet(walletData, password);
+      
+      // Store wallet locally
       storeEncryptedWallet(encryptedWallet);
       
-      // Create session
-      storeSession(walletData.address);
+      // Store wallet in Supabase database
+      await createWalletInDatabase(walletData.address, encryptedWallet.encryptedPrivateKey);
+      
+      // Perform authentication to log the user in automatically
+      // Get fresh challenge and sign it
+      const nonce = await getAuthChallenge(walletData.address);
+      
+      // Create wallet instance for signing
+      const wallet = new Wallet(walletData.privateKey);
+      const signature = await wallet.signMessage(nonce);
+
+      // Verify signature with server to establish session
+      await verifySignature(walletData.address, signature);
       
       // Set wallet in context
       setWallet(walletData);
       
       setCurrentStep('complete');
-    } catch {
-      setError('Failed to save signing identity');
+    } catch (error) {
+      console.error('Wallet creation error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save signing identity');
     } finally {
       setIsLoading(false);
     }
@@ -292,7 +308,7 @@ export default function SignupFlow() {
         <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
         <p className="font-mono text-lg text-purple-400 mb-3">{walletData?.customId}</p>
         <p className="text-sm text-gray-400 mb-2">Your Signing Address:</p>
-        <p className="font-mono text-sm break-all text-gray-300">{walletData?.address}</p>
+        <p className="font-mono text-sm break-all text-gray-300">{walletData ? getChecksumAddress(walletData.address) : ''}</p>
       </div>
 
       <p className="text-gray-300 mb-6">

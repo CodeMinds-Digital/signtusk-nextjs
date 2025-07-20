@@ -1,5 +1,5 @@
 import * as bip39 from 'bip39';
-import { Wallet } from 'ethers';
+import { Wallet, getAddress } from 'ethers';
 import CryptoJS from 'crypto-js';
 
 export interface WalletData {
@@ -200,4 +200,29 @@ export function verifyMnemonicWords(
   return selectedWords.every(({ index, word }) => {
     return words[index - 1] === word; // Convert back to 0-based indexing
   });
+}
+
+/**
+ * Normalize address to lowercase for storage and comparison
+ */
+export function normalizeAddress(address: string): string {
+  return address.toLowerCase();
+}
+
+/**
+ * Get checksummed address for display
+ */
+export function getChecksumAddress(address: string): string {
+  try {
+    return getAddress(address);
+  } catch {
+    return address; // Return original if invalid
+  }
+}
+
+/**
+ * Compare two addresses (case-insensitive)
+ */
+export function addressesEqual(address1: string, address2: string): boolean {
+  return normalizeAddress(address1) === normalizeAddress(address2);
 }
