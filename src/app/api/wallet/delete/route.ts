@@ -19,7 +19,7 @@ export async function DELETE(request: NextRequest) {
     try {
       const payload = verifyJWT(token);
       walletAddress = payload.wallet_address;
-    } catch (jwtError) {
+    } catch {
       return NextResponse.json(
         { error: 'Invalid or expired token' },
         { status: 401 }

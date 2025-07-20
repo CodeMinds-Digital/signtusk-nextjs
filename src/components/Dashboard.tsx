@@ -6,7 +6,7 @@ import { removeStoredWallet, deleteWalletFromDatabase } from '@/lib/storage';
 import { getChecksumAddress } from '@/lib/wallet';
 
 export default function Dashboard() {
-  const { wallet, currentUser, isAuthenticated, isLoading, logout } = useWallet();
+  const { wallet, logout } = useWallet();
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [searchId, setSearchId] = useState('');

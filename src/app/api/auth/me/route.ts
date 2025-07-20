@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         wallet_address: payload.wallet_address,
         authenticated: true
       });
-    } catch (jwtError) {
+    } catch {
       return NextResponse.json(
         { error: 'Invalid or expired token' },
         { status: 401 }

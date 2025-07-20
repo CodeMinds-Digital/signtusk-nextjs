@@ -22,7 +22,7 @@ export function signJWT(payload: { wallet_address: string }): string {
 export function verifyJWT(token: string): JWTPayload {
   try {
     return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch (error) {
+  } catch {
     throw new Error('Invalid or expired token');
   }
 }
