@@ -45,8 +45,9 @@ To deploy SignTusk on Netlify, you need to configure the following environment v
 1. **Push your code** to your Git repository (GitHub, GitLab, etc.)
 2. **Connect your repository** to Netlify
 3. **Configure build settings**:
-   - Build command: `npm run build:netlify`
+   - Build command: `npm ci && npm run build:netlify`
    - Publish directory: `.next`
+   - Node.js version: `20` (set in Environment variables as NODE_VERSION = 20)
 4. **Set up environment variables** as described above (CRITICAL STEP)
 5. **Deploy the site**
 
@@ -90,6 +91,22 @@ The project includes a `netlify.toml` file with the following configuration:
 ### Build Fails with "Missing Supabase environment variables"
 
 This error occurs when the environment variables are not properly set in Netlify. Make sure all required environment variables are configured in your Netlify dashboard.
+
+### Build Fails with TypeScript/Module Not Found Errors
+
+If you encounter TypeScript-related build errors:
+
+1. The project has been configured to use JavaScript for the Next.js config (`next.config.js`)
+2. TypeScript is included in dependencies (not devDependencies) for proper build support
+3. Node.js version is set to 20 for compatibility
+
+### Build Command Issues
+
+If the build command fails, ensure:
+
+1. The build command is set to: `npm ci && npm run build:netlify`
+2. The publish directory is set to: `.next`
+3. All environment variables are properly configured before building
 
 ### JWT Secret Security
 

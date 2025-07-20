@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Standalone output for optimized deployment
 
   // Fix cross-origin issues in development
@@ -26,4 +25,4 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
 };
 
-export default nextConfig;
+module.exports = nextConfig;
