@@ -8,10 +8,12 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "node scripts/check-env.js && next build",
+    "build:netlify": "next build",
     "start": "next start",
     "export": "next export",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check-env": "node scripts/check-env.js"
   },
   "dependencies": {
     "@scure/bip32": "^1.7.0",

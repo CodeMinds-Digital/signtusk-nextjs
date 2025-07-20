@@ -1,0 +1,19 @@
+[build]
+  command = "npm run build:netlify"
+  publish = ".next"
+
+[build.environment]
+  NODE_ENV = "production"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Redirect all requests to Next.js
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
