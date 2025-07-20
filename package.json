@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "node scripts/check-env.js && next build",
-    "build:netlify": "next build",
+    "build:netlify": "ls -R node_modules/@tailwindcss && ls -la && next build",
     "start": "next start",
     "export": "next export",
     "lint": "next lint",
