@@ -1,0 +1,13 @@
+# Comparison of Document Signing Methods
+
+This document provides a comparative overview of the different off-chain and blockchain-anchored signing methods. Use this table to select the most appropriate method based on your specific requirements for security, cost, and complexity.
+
+| Feature | Off-Chain Single Signature | Off-Chain Multi-Signature | Blockchain-Anchored Single Signature | Blockchain-Anchored Multi-Signature |
+| :--- | :--- | :--- | :--- | :--- |
+| **Primary Use Case** | Simple agreements, internal documents, individual consent. | Contracts requiring multiple parties' approval (e.g., partnership agreements). | Documents needing a public, immutable timestamp for proof of existence (e.g., intellectual property). | High-value agreements needing multiple signers and an immutable, auditable trail (e.g., financial term sheets). |
+| **Security Level** | Good. Relies on standard public-key cryptography. | High. Requires consent from all specified parties. | Very High. Adds blockchain immutability for timestamping. | Highest. Combines multi-party consent with blockchain immutability. |
+| **Trust Model** | Trust in the service provider and its off-chain storage. | Trust in the service provider and all signing parties. | Trust in the service provider and the underlying blockchain network. | Trust in the service provider, all signers, and the blockchain network. |
+| **Complexity** | Low. Simple to implement and for users to understand. | Medium. Requires managing a workflow for multiple signers. | Medium. Involves blockchain transaction management. | High. Combines multi-signer workflow with blockchain transaction management. |
+| **Cost** | Low. No gas fees. Costs are limited to data storage. | Low. No gas fees. Costs are limited to data storage and application logic. | Medium. Incurs gas fees for anchoring the hash on-chain. | Medium to High. Incurs gas fees for anchoring the proof hash on-chain. |
+| **Verification** | Verify signature against the document hash using the signer's public key. | Verify each signature against the document hash using each signer's public key. | Verify signature off-chain and confirm the document hash's existence on the blockchain. | Verify all signatures off-chain and confirm the aggregated proof hash's existence on the blockchain. |
+| **Example** | A user accepting an app's Terms of Service. | A board of directors approving meeting minutes. | A scientist timestamping a research discovery. | A group of investors co-signing a funding agreement. |
