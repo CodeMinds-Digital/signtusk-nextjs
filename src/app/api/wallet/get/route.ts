@@ -1,58 +1,129 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { verifyJWT } from '@/lib/jwt';
+import { UserIdentityService } from '@/lib/user-identity';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from cookie
-    const token = request.cookies.get('auth-token')?.value;
+    // Get wallet address from query parameters or session
+    const { searchParams } = new URL(request.url);
+    const walletAddress = searchParams.get('wallet_address');
 
-    if (!token) {
+    if (!walletAddress) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: 'Missing wallet_address parameter' },
+        { status: 400 }
       );
     }
 
-    // Verify JWT token
-    let walletAddress: string;
-    try {
-      const payload = verifyJWT(token);
-      walletAddress = payload.wallet_address;
-    } catch {
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 401 }
+        { error: 'Invalid wallet address format' },
+        { status: 400 }
       );
     }
 
-    // Get wallet data from database
-    const { data: wallet, error: walletError } = await supabaseAdmin
-      .from('wallets')
-      .select('wallet_address, encrypted_private_key, created_at')
-      .eq('wallet_address', walletAddress)
-      .single();
-
-    if (walletError || !wallet) {
+    // Get existing user by wallet address (NO regeneration)
+    const userIdentity = await UserIdentityService.getUserByWalletAddress(walletAddress);
+    
+    if (!userIdentity) {
       return NextResponse.json(
-        { error: 'Wallet not found' },
+        { 
+          success: false,
+          error: 'Account not found',
+          message: 'No account exists with this wallet address. Please sign up first.'
+        },
         { status: 404 }
       );
     }
 
+    // Update last login timestamp
+    await UserIdentityService.updateLastLogin(userIdentity.custom_id);
+
     return NextResponse.json({
       success: true,
+      message: 'Account retrieved successfully',
       wallet: {
-        wallet_address: wallet.wallet_address,
-        encrypted_private_key: wallet.encrypted_private_key,
-        created_at: wallet.created_at
+        custom_id: userIdentity.custom_id,
+        wallet_address: userIdentity.wallet_address,
+        encrypted_private_key: userIdentity.encrypted_private_key,
+        encrypted_mnemonic: userIdentity.encrypted_mnemonic,
+        salt: userIdentity.salt,
+        display_name: userIdentity.display_name,
+        email: userIdentity.email,
+        last_login: userIdentity.last_login
       }
     });
 
   } catch (error) {
-    console.error('Wallet fetch error:', error);
+    console.error('Wallet retrieval error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch wallet' },
+      { 
+        success: false,
+        error: 'Internal server error' 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { wallet_address } = await request.json();
+
+    if (!wallet_address) {
+      return NextResponse.json(
+        { error: 'Missing wallet_address' },
+        { status: 400 }
+      );
+    }
+
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet_address)) {
+      return NextResponse.json(
+        { error: 'Invalid wallet address format' },
+        { status: 400 }
+      );
+    }
+
+    // Get existing user by wallet address (NO regeneration)
+    const userIdentity = await UserIdentityService.getUserByWalletAddress(wallet_address);
+    
+    if (!userIdentity) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Account not found',
+          message: 'No account exists with this wallet address. Please sign up first.'
+        },
+        { status: 404 }
+      );
+    }
+
+    // Update last login timestamp
+    await UserIdentityService.updateLastLogin(userIdentity.custom_id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Account retrieved successfully',
+      wallet: {
+        custom_id: userIdentity.custom_id,
+        wallet_address: userIdentity.wallet_address,
+        encrypted_private_key: userIdentity.encrypted_private_key,
+        encrypted_mnemonic: userIdentity.encrypted_mnemonic,
+        salt: userIdentity.salt,
+        display_name: userIdentity.display_name,
+        email: userIdentity.email,
+        last_login: userIdentity.last_login
+      }
+    });
+
+  } catch (error) {
+    console.error('Wallet retrieval error:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Internal server error' 
+      },
       { status: 500 }
     );
   }

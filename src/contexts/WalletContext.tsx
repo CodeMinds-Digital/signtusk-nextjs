@@ -10,12 +10,18 @@ import {
   getCurrentUser, 
   logout as apiLogout
 } from '@/lib/storage';
+import { 
+  checkIdentityConsistency, 
+  logIdentityConsistency,
+  getAuthoritativeSignerId,
+  createIdentityErrorMessage
+} from '@/lib/identity-consistency';
 
 interface WalletContextType {
   wallet: WalletData | null;
   isAuthenticated: boolean;
   hasWallet: boolean;
-  currentUser: { wallet_address: string } | null;
+  currentUser: { wallet_address: string; custom_id?: string } | null;
   isLoading: boolean;
   setWallet: (wallet: WalletData | null) => void;
   logout: () => Promise<void>;
@@ -28,18 +34,55 @@ interface WalletProviderProps {
   children: ReactNode;
 }
 
+// Session storage key for temporary wallet storage
+const SESSION_WALLET_KEY = 'session_wallet_data';
+
 export function WalletProvider({ children }: WalletProviderProps) {
   const [wallet, setWalletState] = useState<WalletData | null>(null);
   const [hasWallet, setHasWallet] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ wallet_address: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ wallet_address: string; custom_id?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Store wallet in session storage for persistence across page navigations
+  const storeWalletInSession = (walletData: WalletData | null) => {
+    if (typeof window === 'undefined') return;
+    
+    if (walletData) {
+      sessionStorage.setItem(SESSION_WALLET_KEY, JSON.stringify(walletData));
+    } else {
+      sessionStorage.removeItem(SESSION_WALLET_KEY);
+    }
+  };
+
+  // Load wallet from session storage
+  const loadWalletFromSession = (): WalletData | null => {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const stored = sessionStorage.getItem(SESSION_WALLET_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Failed to load wallet from session:', error);
+      return null;
+    }
+  };
 
   const refreshAuth = async () => {
     try {
       const user = await getCurrentUser();
       setCurrentUser(user);
       setIsAuthenticated(!!user);
+      
+      // If we have a user but no wallet in state, try to load from session first
+      if (user && !wallet) {
+        const sessionWallet = loadWalletFromSession();
+        if (sessionWallet) {
+          setWalletState(sessionWallet);
+        } else {
+          await loadWalletFromStorage();
+        }
+      }
     } catch (error) {
       console.error('Failed to refresh auth:', error);
       setCurrentUser(null);
@@ -47,20 +90,45 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   };
 
+  const loadWalletFromStorage = async () => {
+    try {
+      // Check if we have a stored wallet
+      if (hasStoredWallet()) {
+        // The wallet will be loaded when user provides password
+        // This just indicates that a wallet exists
+        setHasWallet(true);
+      }
+    } catch (error) {
+      console.error('Error loading wallet from storage:', error);
+    }
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
       
-      // Migrate from old single wallet storage if needed
-      migrateFromSingleWallet();
-      
-      // Check if wallet exists in localStorage
-      setHasWallet(hasStoredWallet());
-      
-      // Check for active session with server
-      await refreshAuth();
-      
-      setIsLoading(false);
+      try {
+        // Migrate from old single wallet storage if needed
+        migrateFromSingleWallet();
+        
+        // Check if wallet exists in localStorage
+        const walletExists = hasStoredWallet();
+        setHasWallet(walletExists);
+        
+        // Try to load wallet from session storage first
+        const sessionWallet = loadWalletFromSession();
+        if (sessionWallet) {
+          setWalletState(sessionWallet);
+        }
+        
+        // Check for active session with server
+        await refreshAuth();
+        
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     initializeAuth();
@@ -68,24 +136,42 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
   const setWallet = (newWallet: WalletData | null) => {
     setWalletState(newWallet);
-    // Note: Authentication state is managed separately via server sessions
+    
+    // Store in session storage for persistence
+    storeWalletInSession(newWallet);
+    
+    // Update authentication state based on wallet presence
+    if (newWallet) {
+      // Wallet is loaded, but authentication depends on server session
+      // The server session should already be established during login
+    } else {
+      // Wallet is cleared (logout or error)
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+    }
   };
 
   const logout = async () => {
     try {
-      // Call server logout endpoint
+      // Call server logout endpoint to clear session
       await apiLogout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local state but keep the encrypted wallet in localStorage
+      // Clear local state but KEEP the encrypted wallet in localStorage
       setWalletState(null);
       setIsAuthenticated(false);
       setCurrentUser(null);
-      // Update hasWallet state to reflect that wallet is still stored
+      
+      // Clear session storage
+      storeWalletInSession(null);
+      
+      // Update hasWallet state - wallet should still be stored for future logins
       setHasWallet(hasStoredWallet());
-      // DO NOT remove stored wallet - users need it to login again
-      // removeStoredWallet(); // This was causing the issue
+      
+      // IMPORTANT: DO NOT remove stored wallet
+      // The encrypted wallet stays in localStorage so user can login again
+      // with the SAME custom_id and wallet_address
     }
   };
 

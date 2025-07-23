@@ -5,30 +5,18 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useRouter } from 'next/navigation';
 
 export default function WalletLanding() {
-  const { hasWallet, isAuthenticated } = useWallet();
+  const { hasWallet, isAuthenticated, isLoading, currentUser } = useWallet();
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
-
-  // If user is already authenticated, redirect to dashboard
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, router]);
 
   // Animation trigger
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  // Don't render anything if redirecting
-  if (isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl animate-pulse">Redirecting to dashboard...</div>
-      </div>
-    );
-  }
+  // FIXED: Simple, clear authentication logic - no flickering
+  const showDashboardButton = isAuthenticated && currentUser;
+  const showAuthButtons = !isAuthenticated;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -52,18 +40,33 @@ export default function WalletLanding() {
               <h1 className="text-2xl font-bold text-white">SignTusk</h1>
             </div>
             <nav className={`flex space-x-4 transition-all duration-1000 delay-200 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'}`}>
-              <button
-                onClick={() => router.push('/login')}
-                className="bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/20 font-medium hover:scale-105"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => router.push('/signup')}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-medium shadow-lg hover:shadow-purple-500/25 hover:scale-105"
-              >
-                Get Started
-              </button>
+              {isLoading ? (
+                <div className="bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-xl border border-white/20">
+                  Loading...
+                </div>
+              ) : showDashboardButton ? (
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-medium shadow-lg hover:shadow-purple-500/25 hover:scale-105"
+                >
+                  Dashboard
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/20 font-medium hover:scale-105"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => router.push('/signup')}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-medium shadow-lg hover:shadow-purple-500/25 hover:scale-105"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
             </nav>
           </div>
         </div>
@@ -97,30 +100,87 @@ export default function WalletLanding() {
             </p>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - FIXED: Clear, consistent flow */}
           <div className={`flex flex-col sm:flex-row gap-6 justify-center mb-24 transition-all duration-1000 delay-900 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <button
-              onClick={() => router.push('/signup')}
-              className="group bg-gradient-to-r from-purple-600 to-pink-600 text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-2xl hover:shadow-purple-500/30 hover:scale-105 relative overflow-hidden"
-            >
-              <span className="relative z-10">Create New Identity</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-            {hasWallet && (
-              <button
-                onClick={() => router.push('/login')}
-                className="bg-white/10 backdrop-blur-sm text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20 hover:scale-105"
-              >
-                Access Local Identity
-              </button>
+            {isLoading ? (
+              <div className="bg-white/10 backdrop-blur-sm text-white px-10 py-5 rounded-2xl text-lg font-semibold border border-white/20">
+                Loading...
+              </div>
+            ) : showDashboardButton ? (
+              <>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="group bg-gradient-to-r from-purple-600 to-pink-600 text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-2xl hover:shadow-purple-500/30 hover:scale-105 relative overflow-hidden"
+                >
+                  <span className="relative z-10">Go to Dashboard</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </button>
+                <button
+                  onClick={() => router.push('/sign-document')}
+                  className="bg-white/10 backdrop-blur-sm text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20 hover:scale-105"
+                >
+                  Quick Sign Document
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => router.push('/signup')}
+                  className="group bg-gradient-to-r from-purple-600 to-pink-600 text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-2xl hover:shadow-purple-500/30 hover:scale-105 relative overflow-hidden"
+                >
+                  <span className="relative z-10">Create New Identity</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </button>
+                {hasWallet && (
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="bg-white/10 backdrop-blur-sm text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20 hover:scale-105"
+                  >
+                    Access Local Identity
+                  </button>
+                )}
+                <button
+                  onClick={() => router.push('/import')}
+                  className="bg-white/10 backdrop-blur-sm text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20 hover:scale-105"
+                >
+                  Import Identity
+                </button>
+              </>
             )}
-            <button
-              onClick={() => router.push('/import')}
-              className="bg-white/10 backdrop-blur-sm text-white px-10 py-5 rounded-2xl text-lg font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20 hover:scale-105"
-            >
-              Import Identity
-            </button>
           </div>
+
+          {/* Quick Actions for Authenticated Users */}
+          {showDashboardButton && (
+            <div className={`bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-8 mb-24 transition-all duration-1000 delay-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <h2 className="text-2xl font-bold text-white mb-6">Quick Actions</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button
+                  onClick={() => router.push('/sign-document')}
+                  className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-sm text-green-300 p-6 rounded-xl hover:from-green-500/30 hover:to-emerald-500/30 transition-all duration-200 border border-green-500/30"
+                >
+                  <div className="text-3xl mb-3">📝</div>
+                  <div className="font-semibold text-lg">Single Signature</div>
+                  <p className="text-sm opacity-75 mt-2">Sign documents individually</p>
+                </button>
+                <button
+                  onClick={() => router.push('/multi-signature')}
+                  className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm text-blue-300 p-6 rounded-xl hover:from-blue-500/30 hover:to-cyan-500/30 transition-all duration-200 border border-blue-500/30"
+                >
+                  <div className="text-3xl mb-3">👥</div>
+                  <div className="font-semibold text-lg">Multi-Signature</div>
+                  <p className="text-sm opacity-75 mt-2">Require multiple signers</p>
+                </button>
+                <button
+                  onClick={() => router.push('/verify')}
+                  className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm text-purple-300 p-6 rounded-xl hover:from-purple-500/30 hover:to-pink-500/30 transition-all duration-200 border border-purple-500/30"
+                >
+                  <div className="text-3xl mb-3">🔍</div>
+                  <div className="font-semibold text-lg">Verify Documents</div>
+                  <p className="text-sm opacity-75 mt-2">Check signature validity</p>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Stats Section */}
           <div className={`grid grid-cols-1 md:grid-cols-3 gap-8 mb-24 transition-all duration-1000 delay-1100 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
@@ -170,7 +230,7 @@ export default function WalletLanding() {
                 delay: "delay-[1600ms]"
               },
               {
-                icon: "🛡️",
+                icon: "��️",
                 title: "Tamper Detection",
                 description: "Any document modification after signing is immediately detected and signature invalidated.",
                 gradient: "from-red-500 to-pink-500",

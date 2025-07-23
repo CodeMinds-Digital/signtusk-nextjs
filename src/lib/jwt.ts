@@ -4,11 +4,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-i
 
 export interface JWTPayload {
   wallet_address: string;
+  custom_id?: string;
   iat?: number;
   exp?: number;
 }
 
-export function signJWT(payload: { wallet_address: string }): string {
+export function signJWT(payload: { wallet_address: string; custom_id?: string }): string {
   return jwt.sign(
     payload,
     JWT_SECRET,

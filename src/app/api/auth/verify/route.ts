@@ -76,13 +76,26 @@ export async function POST(request: NextRequest) {
       .delete()
       .eq('id', challenge.id);
 
-    // Generate JWT token
-    const token = signJWT({ wallet_address: normalizedAddress });
+    // Get the custom_id from the wallets table
+    const { data: walletData, error: walletError } = await supabaseAdmin
+      .from('wallets')
+      .select('custom_id')
+      .eq('wallet_address', normalizedAddress)
+      .single();
+
+    const customId = walletData?.custom_id || null;
+
+    // Generate JWT token with custom_id
+    const token = signJWT({ 
+      wallet_address: normalizedAddress,
+      custom_id: customId 
+    });
 
     // Create response with HttpOnly cookie
     const response = NextResponse.json({
       success: true,
       wallet_address: normalizedAddress,
+      custom_id: customId,
       message: 'Authentication successful'
     });
 

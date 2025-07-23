@@ -119,7 +119,7 @@ export async function verifySignature(walletAddress: string, signature: string):
 /**
  * Get current authenticated user
  */
-export async function getCurrentUser(): Promise<{ wallet_address: string } | null> {
+export async function getCurrentUser(): Promise<{ wallet_address: string; custom_id?: string } | null> {
   try {
     const response = await fetch('/api/auth/me', {
       method: 'GET',
@@ -131,7 +131,10 @@ export async function getCurrentUser(): Promise<{ wallet_address: string } | nul
     }
 
     const data = await response.json();
-    return data.success ? { wallet_address: data.wallet_address } : null;
+    return data.success ? { 
+      wallet_address: data.wallet_address,
+      custom_id: data.custom_id 
+    } : null;
   } catch {
     return null;
   }

@@ -81,8 +81,8 @@ export default function Dashboard() {
     }
   };
 
-  // Show logging out state instead of "No Signing Identity Connected"
-  if (!wallet && isLoggingOut) {
+  // Show logging out state
+  if (isLoggingOut) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-8">
@@ -91,23 +91,6 @@ export default function Dashboard() {
           </div>
           <h2 className="text-xl font-bold mb-2 text-white">Logging Out...</h2>
           <p className="text-gray-300">Please wait while we securely log you out.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!wallet) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-8">
-          <h2 className="text-2xl font-bold mb-4 text-white">No Signing Identity Connected</h2>
-          <p className="text-gray-300 mb-6">Please login to access your SignTusk identity.</p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
-          >
-            Go to Login
-          </button>
         </div>
       </div>
     );
@@ -298,21 +281,81 @@ export default function Dashboard() {
         {/* Actions */}
         <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 mt-8">
           <h2 className="text-xl font-bold text-white mb-6">Document Signing Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="bg-green-500/20 backdrop-blur-sm text-green-300 p-6 rounded-xl hover:bg-green-500/30 transition-all duration-200 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <button 
+              onClick={() => window.location.href = '/integrated-signing'}
+              className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-sm text-cyan-300 p-6 rounded-xl hover:from-cyan-500/30 hover:to-blue-500/30 transition-all duration-200 border border-cyan-500/30"
+            >
+              <div className="text-2xl mb-2">🔗</div>
+              <div className="font-semibold">Integrated Signing</div>
+              <p className="text-sm opacity-75 mt-1">Supabase + sign_insert</p>
+            </button>
+            <button 
+              onClick={() => window.location.href = '/enhanced-signing'}
+              className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-sm text-green-300 p-6 rounded-xl hover:from-green-500/30 hover:to-emerald-500/30 transition-all duration-200 border border-green-500/30"
+            >
+              <div className="text-2xl mb-2">🚀</div>
+              <div className="font-semibold">Enhanced Signing</div>
+              <p className="text-sm opacity-75 mt-1">Model 1.1 with PDF Placement</p>
+            </button>
+            <button 
+              onClick={() => window.location.href = '/sign-document'}
+              className="bg-green-500/20 backdrop-blur-sm text-green-300 p-6 rounded-xl hover:bg-green-500/30 transition-all duration-200 border border-green-500/30"
+            >
               <div className="text-2xl mb-2">📝</div>
               <div className="font-semibold">Sign Document</div>
-              <p className="text-sm opacity-75 mt-1">Coming Soon</p>
+              <p className="text-sm opacity-75 mt-1">Model 1.1: Single Signature</p>
             </button>
-            <button className="bg-blue-500/20 backdrop-blur-sm text-blue-300 p-6 rounded-xl hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <button 
+              onClick={() => window.location.href = '/multi-signature'}
+              className="bg-blue-500/20 backdrop-blur-sm text-blue-300 p-6 rounded-xl hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30"
+            >
+              <div className="text-2xl mb-2">👥</div>
+              <div className="font-semibold">Multi-Signature</div>
+              <p className="text-sm opacity-75 mt-1">Model 1.2: Multi-Signature</p>
+            </button>
+            <button 
+              onClick={() => window.location.href = '/sign-document'}
+              className="bg-purple-500/20 backdrop-blur-sm text-purple-300 p-6 rounded-xl hover:bg-purple-500/30 transition-all duration-200 border border-purple-500/30"
+            >
               <div className="text-2xl mb-2">🔍</div>
-              <div className="font-semibold">Verify Signature</div>
-              <p className="text-sm opacity-75 mt-1">Coming Soon</p>
+              <div className="font-semibold">Verify Documents</div>
+              <p className="text-sm opacity-75 mt-1">Verify Signatures</p>
             </button>
-            <button className="bg-purple-500/20 backdrop-blur-sm text-purple-300 p-6 rounded-xl hover:bg-purple-500/30 transition-all duration-200 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <div className="text-2xl mb-2">📊</div>
-              <div className="font-semibold">Signing History</div>
-              <p className="text-sm opacity-75 mt-1">Coming Soon</p>
+          </div>
+        </div>
+
+        {/* Model Information */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 mt-8">
+          <h2 className="text-xl font-bold text-white mb-4">Implementation Status</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white/5 rounded-lg border border-white/10 p-4">
+              <div className="flex items-center mb-3">
+                <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm mr-3">✓</span>
+                <div>
+                  <h3 className="text-white font-semibold">Model 1.1 - Single Signature</h3>
+                  <p className="text-gray-400 text-sm">Off-chain document signing with single digital signature</p>
+                </div>
+              </div>
+              <p className="text-green-400 text-sm">✅ Fully Implemented</p>
+            </div>
+            <div className="bg-white/5 rounded-lg border border-white/10 p-4">
+              <div className="flex items-center mb-3">
+                <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm mr-3">✓</span>
+                <div>
+                  <h3 className="text-white font-semibold">Model 1.2 - Multi-Signature</h3>
+                  <p className="text-gray-400 text-sm">Off-chain document signing with multiple digital signatures</p>
+                </div>
+              </div>
+              <p className="text-green-400 text-sm">✅ Fully Implemented</p>
+            </div>
+          </div>
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => window.location.href = '/models'}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-semibold"
+            >
+              View Implementation Details
             </button>
           </div>
         </div>

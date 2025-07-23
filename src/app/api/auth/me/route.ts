@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         wallet_address: payload.wallet_address,
+        custom_id: payload.custom_id,
         authenticated: true
       });
     } catch {
