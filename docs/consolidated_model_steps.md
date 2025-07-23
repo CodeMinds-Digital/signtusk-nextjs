@@ -2,6 +2,10 @@
 
 This document provides a centralized overview of the different models for document signing, covering both single and multi-signature flows. It is a consolidation of the individual model documents.
 
+For a detailed breakdown of the services required for these models, please see [Required Services for Document Signing Models](./required_services.md).
+
+For a step-by-step guide of each model aligned with the required services, please see [Model-Based Steps for Document Signing](./model_based_steps.md).
+
 ## 1. Off-Chain Document Signing
 
 ### 1.1. Single Signature
@@ -333,15 +337,3 @@ sequenceDiagram
 6.  **Anchor Hash (and Metadata) On-Chain:** A single transaction is created on the blockchain to anchor the proof.
 7.  **Sync Workflow Between Systems:** The on-chain event triggers updates in the off-chain system.
 8.  **Serve Verification Tools:** The application provides a tool to verify the document and its signatures.
-## 5. Consolidated Required Services
-
-This section provides a comprehensive list of all services required across the different signing models. Depending on the chosen model, a subset of these services will be necessary.
-
-*   **Identity Provider/Management:** An authentication service (e.g., SSO, OAuth, DIDs, Okta, Azure AD) to verify user identities and manage roles.
-*   **Secure Off-Chain Storage:** A reliable storage solution (e.g., IPFS, AWS S3, Google Cloud Storage, or a private server) to hold original documents, signatures, and related metadata.
-*   **Database:** A database system (e.g., PostgreSQL, MySQL) to store metadata, document references, signatures, and manage workflow states.
-*   **Digital Wallet/Key Management/Secure Key Store:** A system for users to securely manage their private keys and create digital signatures (e.g., MetaMask, Trust Wallet, Fortanix).
-*   **Blockchain:** A public or private blockchain (e.g., Ethereum, Polygon, Hyperledger Fabric) to anchor document hashes, record immutable proofs, and execute smart contracts.
-*   **Smart Contracts:** A set of smart contracts to manage the signing logic, store data, enforce rules, and handle multi-signature workflows.
-*   **Notification Service:** A service (e.g., email, SMS, SendGrid, AWS SNS) to alert signatories when their action is required.
-*   **API Bridges/Oracles:** Middleware services that facilitate communication and sync state between the blockchain and off-chain systems.
