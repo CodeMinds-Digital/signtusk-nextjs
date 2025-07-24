@@ -16,14 +16,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const { wallet_address, custom_id } = await request.json();
-    
+
     const testWalletAddress = wallet_address || '0x1234567890123456789012345678901234567890';
     const testCustomId = custom_id || 'TEST123DEMO456';
 
     // Create JWT token
-    const token = signJWT({ 
+    const token = signJWT({
       wallet_address: testWalletAddress,
-      custom_id: testCustomId 
+      custom_id: testCustomId
     });
 
     // Create response
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Set auth cookie
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'development',
       sameSite: 'strict',
       maxAge: 60 * 60 * 24, // 24 hours
       path: '/'
