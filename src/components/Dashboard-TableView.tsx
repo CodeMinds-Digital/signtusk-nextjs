@@ -34,14 +34,6 @@ interface VerifyModal {
   document: Document | null;
   verificationData: any;
   isLoading: boolean;
-  showDetailed: boolean;
-}
-
-interface HistoryModal {
-  isOpen: boolean;
-  document: Document | null;
-  historyData: any[];
-  isLoading: boolean;
 }
 
 export default function Dashboard() {
@@ -62,13 +54,6 @@ export default function Dashboard() {
     isOpen: false,
     document: null,
     verificationData: null,
-    isLoading: false,
-    showDetailed: false
-  });
-  const [historyModal, setHistoryModal] = useState<HistoryModal>({
-    isOpen: false,
-    document: null,
-    historyData: [],
     isLoading: false
   });
 
@@ -188,8 +173,7 @@ export default function Dashboard() {
       isOpen: true,
       document,
       verificationData: null,
-      isLoading: true,
-      showDetailed: false
+      isLoading: true
     });
 
     try {
@@ -240,80 +224,6 @@ export default function Dashboard() {
         },
         isLoading: false
       }));
-    }
-  };
-
-  const handleDocumentHistory = async (document: Document) => {
-    setHistoryModal({
-      isOpen: true,
-      document,
-      historyData: [],
-      isLoading: true
-    });
-
-    try {
-      // Fetch document history from API
-      const response = await fetch(`/api/documents/${document.id}/history`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setHistoryModal(prev => ({
-          ...prev,
-          historyData: result.history || [],
-          isLoading: false
-        }));
-      } else {
-        // Fallback to basic history if API doesn't exist
-        const basicHistory = [
-          {
-            action: 'Document Created',
-            timestamp: document.createdAt,
-            details: `Document "${document.metadata?.title || document.fileName}" was uploaded`,
-            type: 'creation'
-          }
-        ];
-
-        // Add signature events if document is completed
-        if (document.status === 'completed' && document.signatureCount > 0) {
-          for (let i = 0; i < document.signatureCount; i++) {
-            basicHistory.push({
-              action: 'Document Signed',
-              timestamp: document.createdAt, // Would be actual signature timestamp in real implementation
-              details: `Signature ${i + 1} completed`,
-              type: 'signature'
-            });
-          }
-        }
-
-        setHistoryModal(prev => ({
-          ...prev,
-          historyData: basicHistory,
-          isLoading: false
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading document history:', error);
-      setHistoryModal(prev => ({
-        ...prev,
-        historyData: [],
-        isLoading: false
-      }));
-    }
-  };
-
-  const handleDetailedVerification = () => {
-    if (verifyModal.document) {
-      // Option 1: Show detailed info in same popup
-      setVerifyModal(prev => ({
-        ...prev,
-        showDetailed: true
-      }));
-      
-      // Option 2: Redirect to full verification page (uncomment to use)
-      // window.location.href = `/verify?doc=${verifyModal.document.id}`;
     }
   };
 
@@ -471,21 +381,15 @@ export default function Dashboard() {
                         <div className="flex justify-center space-x-2">
                           <button
                             onClick={() => handleViewDocument(doc)}
-                            className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded text-sm hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30 font-medium"
+                            className="bg-blue-500/20 text-blue-300 px-3 py-2 rounded text-sm hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30 font-medium"
                           >
                             👁️ View
                           </button>
                           <button
                             onClick={() => handleVerifyDocument(doc)}
-                            className="bg-purple-500/20 text-purple-300 px-3 py-1 rounded text-sm hover:bg-purple-500/30 transition-all duration-200 border border-purple-500/30 font-medium"
+                            className="bg-purple-500/20 text-purple-300 px-3 py-2 rounded text-sm hover:bg-purple-500/30 transition-all duration-200 border border-purple-500/30 font-medium"
                           >
                             ✅ Verify
-                          </button>
-                          <button
-                            onClick={() => handleDocumentHistory(doc)}
-                            className="bg-orange-500/20 text-orange-300 px-3 py-1 rounded text-sm hover:bg-orange-500/30 transition-all duration-200 border border-orange-500/30 font-medium"
-                          >
-                            📋 History
                           </button>
                         </div>
                       </td>
@@ -750,16 +654,14 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Verify Modal - Basic + Detailed */}
+      {/* Verify Modal */}
       {verifyModal.isOpen && verifyModal.document && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">
-                🔍 {verifyModal.showDetailed ? 'Detailed Verification' : 'Document Verification'}
-              </h3>
+              <h3 className="text-xl font-bold text-white">🔍 Document Verification</h3>
               <button
-                onClick={() => setVerifyModal({ isOpen: false, document: null, verificationData: null, isLoading: false, showDetailed: false })}
+                onClick={() => setVerifyModal({ isOpen: false, document: null, verificationData: null, isLoading: false })}
                 className="bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20"
               >
                 ✕ Close
@@ -775,7 +677,7 @@ export default function Dashboard() {
               </div>
             ) : verifyModal.verificationData ? (
               <div className="space-y-4">
-                {/* Basic Verification Status */}
+                {/* Verification Status */}
                 <div className={`p-4 rounded-lg border ${
                   verifyModal.verificationData.isValid 
                     ? 'bg-green-500/10 border-green-500/30' 
@@ -793,7 +695,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Basic Document Info */}
+                {/* Document Info */}
                 <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                   <h5 className="text-white font-semibold mb-3">📄 Document Information</h5>
                   <div className="space-y-2 text-sm">
@@ -804,10 +706,6 @@ export default function Dashboard() {
                     <div className="flex justify-between">
                       <span className="text-gray-400">Status:</span>
                       <span className="text-white">{verifyModal.document.status}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Signatures:</span>
-                      <span className="text-white">{verifyModal.verificationData.details?.total_signatures || 0}</span>
                     </div>
                     {verifyModal.verificationData.details?.documentHash && (
                       <div>
@@ -820,111 +718,25 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Basic Signature Info */}
+                {/* Signature Details */}
                 {verifyModal.verificationData.details?.signatures && verifyModal.verificationData.details.signatures.length > 0 && (
                   <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-                    <h5 className="text-white font-semibold mb-3">✍��� Signers</h5>
-                    <div className="space-y-2">
-                      {verifyModal.verificationData.details.signatures.slice(0, verifyModal.showDetailed ? undefined : 2).map((sig: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center bg-black/20 rounded p-2">
+                    <h5 className="text-white font-semibold mb-3">✍️ Signature Information</h5>
+                    {verifyModal.verificationData.details.signatures.map((sig: any, index: number) => (
+                      <div key={index} className="bg-black/20 rounded-lg p-3 mb-2">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
-                            <p className="text-white font-medium">{sig.signerName || sig.signerId || 'Unknown'}</p>
-                            <p className="text-gray-400 text-xs">{sig.timestamp ? new Date(sig.timestamp).toLocaleString() : 'Unknown time'}</p>
+                            <span className="text-gray-400">Signer ID:</span>
+                            <p className="text-white font-semibold">{sig.signerId || 'Unknown'}</p>
                           </div>
-                          <span className={`px-2 py-1 rounded text-xs ${sig.isValid ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
-                            {sig.isValid ? 'Valid' : 'Invalid'}
-                          </span>
+                          <div>
+                            <span className="text-gray-400">Signed At:</span>
+                            <p className="text-white">{sig.timestamp ? new Date(sig.timestamp).toLocaleString() : 'Unknown'}</p>
+                          </div>
                         </div>
-                      ))}
-                      {!verifyModal.showDetailed && verifyModal.verificationData.details.signatures.length > 2 && (
-                        <p className="text-gray-400 text-sm">+{verifyModal.verificationData.details.signatures.length - 2} more signatures</p>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-
-                {/* Detailed Information (shown when showDetailed is true) */}
-                {verifyModal.showDetailed && (
-                  <>
-                    {/* Document Metadata */}
-                    {verifyModal.verificationData.details?.metadata && (
-                      <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-                        <h5 className="text-white font-semibold mb-3">📋 Document Metadata</h5>
-                        <div className="space-y-2 text-sm">
-                          {verifyModal.verificationData.details.metadata.title && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Title:</span>
-                              <span className="text-white">{verifyModal.verificationData.details.metadata.title}</span>
-                            </div>
-                          )}
-                          {verifyModal.verificationData.details.metadata.purpose && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Purpose:</span>
-                              <span className="text-white">{verifyModal.verificationData.details.metadata.purpose}</span>
-                            </div>
-                          )}
-                          {verifyModal.verificationData.details.metadata.signerInfo && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Signer Info:</span>
-                              <span className="text-white">{verifyModal.verificationData.details.metadata.signerInfo}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Technical Details */}
-                    <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-                      <h5 className="text-white font-semibold mb-3">🔧 Technical Details</h5>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Verification Method:</span>
-                          <span className="text-white">{verifyModal.verificationData.details?.verification_method || 'Standard'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Is Signed PDF:</span>
-                          <span className="text-white">{verifyModal.verificationData.details?.isSignedPDF ? 'Yes' : 'No'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Valid Signatures:</span>
-                          <span className="text-green-300">{verifyModal.verificationData.details?.valid_signatures || 0}</span>
-                        </div>
-                        {verifyModal.verificationData.details?.originalHash && (
-                          <div>
-                            <span className="text-gray-400">Original Hash:</span>
-                            <p className="font-mono text-xs text-gray-300 break-all bg-black/30 p-2 rounded mt-1">
-                              {verifyModal.verificationData.details.originalHash}
-                            </p>
-                          </div>
-                        )}
-                        {verifyModal.verificationData.details?.signedHash && verifyModal.verificationData.details.signedHash !== verifyModal.verificationData.details.originalHash && (
-                          <div>
-                            <span className="text-gray-400">Signed Hash:</span>
-                            <p className="font-mono text-xs text-gray-300 break-all bg-black/30 p-2 rounded mt-1">
-                              {verifyModal.verificationData.details.signedHash}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Audit Trail */}
-                    <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-                      <h5 className="text-white font-semibold mb-3">📊 Audit Trail</h5>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Document Created:</span>
-                          <span className="text-white">{formatDate(verifyModal.document.createdAt)}</span>
-                        </div>
-                        {verifyModal.verificationData.details?.signatures?.map((sig: any, index: number) => (
-                          <div key={index} className="flex justify-between">
-                            <span className="text-gray-400">Signature {index + 1}:</span>
-                            <span className="text-white">{sig.timestamp ? formatDate(sig.timestamp) : 'Unknown'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
                 )}
 
                 {/* Error */}
@@ -936,91 +748,17 @@ export default function Dashboard() {
 
                 {/* Actions */}
                 <div className="flex space-x-3">
-                  {!verifyModal.showDetailed && (
-                    <button
-                      onClick={handleDetailedVerification}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-sm font-semibold"
-                    >
-                      🔍 Detailed Verification
-                    </button>
-                  )}
                   <button
                     onClick={() => window.location.href = '/verify'}
-                    className="bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20 text-sm"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-sm font-semibold"
                   >
-                    🌐 Full Verification Page
+                    🔍 Detailed Verification
                   </button>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
                 <p className="text-red-300">Failed to load verification data</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* History Modal */}
-      {historyModal.isOpen && historyModal.document && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">📋 Document History</h3>
-              <button
-                onClick={() => setHistoryModal({ isOpen: false, document: null, historyData: [], isLoading: false })}
-                className="bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20"
-              >
-                ✕ Close
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <h4 className="text-lg font-semibold text-white">{historyModal.document.metadata?.title || historyModal.document.fileName}</h4>
-              <p className="text-gray-400 text-sm">Document ID: {historyModal.document.id}</p>
-            </div>
-
-            {historyModal.isLoading ? (
-              <div className="text-center py-12">
-                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin">
-                  <span className="text-white">⏳</span>
-                </div>
-                <p className="text-gray-300">Loading document history...</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {historyModal.historyData.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">No history data available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {historyModal.historyData.map((event, index) => (
-                      <div key={index} className="bg-white/5 rounded-lg border border-white/10 p-4">
-                        <div className="flex items-start space-x-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                            event.type === 'creation' 
-                              ? 'bg-blue-500/20 text-blue-300' 
-                              : event.type === 'signature'
-                              ? 'bg-green-500/20 text-green-300'
-                              : 'bg-gray-500/20 text-gray-300'
-                          }`}>
-                            {event.type === 'creation' ? '📄' : event.type === 'signature' ? '✍️' : '📋'}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h5 className="text-white font-semibold">{event.action}</h5>
-                                <p className="text-gray-300 text-sm">{event.details}</p>
-                              </div>
-                              <span className="text-gray-400 text-xs">{formatDate(event.timestamp)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
           </div>
