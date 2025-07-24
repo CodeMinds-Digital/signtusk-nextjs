@@ -18,7 +18,7 @@ export default function AuthDebug() {
         const data = await response.json();
         setAuthCheck({ status: response.status, data });
       } catch (error) {
-        setAuthCheck({ error: error.message });
+        setAuthCheck({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     };
 

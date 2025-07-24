@@ -4,7 +4,7 @@ const fs = require('fs');
 let content = fs.readFileSync('src/app/api/documents/verify/route.ts', 'utf8');
 
 // Split into lines
-let lines = content.split('\n');
+const lines = content.split('\n');
 
 // Find and fix the problematic lines
 for (let i = 0; i < lines.length; i++) {

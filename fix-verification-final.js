@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 // Read the verification file
-let content = fs.readFileSync('src/lib/pdf-verification.ts', 'utf8');
+const content = fs.readFileSync('src/lib/pdf-verification.ts', 'utf8');
 
 // Find the problematic section and replace it entirely
 const startMarker = '// Use the original document hash for signature verification';

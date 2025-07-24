@@ -171,7 +171,7 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-white mb-2">SignTusk Dashboard</h1>
               <div className="flex items-center space-x-4">
                 <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg">
-                  <span className="text-white font-semibold">Signer ID: {wallet.customId}</span>
+                  <span className="text-white font-semibold">Signer ID: {wallet?.customId || 'Unknown'}</span>
                 </div>
                 <div className="text-green-400 text-sm flex items-center">
                   <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
@@ -237,17 +237,16 @@ export default function Dashboard() {
                       <h4 className="text-white font-semibold truncate">{doc.fileName}</h4>
                       <p className="text-gray-400 text-sm">{formatDate(doc.createdAt)}</p>
                     </div>
-                    <div className={`px-2 py-1 rounded text-xs font-semibold ${
-                      doc.status === 'completed' 
-                        ? 'bg-green-500/20 text-green-300' 
-                        : doc.status === 'pending'
+                    <div className={`px-2 py-1 rounded text-xs font-semibold ${doc.status === 'completed'
+                      ? 'bg-green-500/20 text-green-300'
+                      : doc.status === 'pending'
                         ? 'bg-yellow-500/20 text-yellow-300'
                         : 'bg-gray-500/20 text-gray-300'
-                    }`}>
+                      }`}>
                       {doc.status}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 text-sm text-gray-300 mb-4">
                     <div className="flex justify-between">
                       <span>Size:</span>
@@ -293,7 +292,7 @@ export default function Dashboard() {
         <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 mb-8">
           <h2 className="text-xl font-bold text-white mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button 
+            <button
               onClick={() => window.location.href = '/sign-document'}
               className="bg-green-500/20 backdrop-blur-sm text-green-300 p-6 rounded-xl hover:bg-green-500/30 transition-all duration-200 border border-green-500/30"
             >
@@ -301,7 +300,7 @@ export default function Dashboard() {
               <div className="font-semibold">Sign Document</div>
               <p className="text-sm opacity-75 mt-1">Model 1.1: Single Signature</p>
             </button>
-            <button 
+            <button
               onClick={() => window.location.href = '/multi-signature'}
               className="bg-blue-500/20 backdrop-blur-sm text-blue-300 p-6 rounded-xl hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30"
             >
@@ -309,7 +308,7 @@ export default function Dashboard() {
               <div className="font-semibold">Multi-Signature</div>
               <p className="text-sm opacity-75 mt-1">Model 1.2: Multiple Signatures</p>
             </button>
-            <button 
+            <button
               onClick={() => window.location.href = '/verify'}
               className="bg-purple-500/20 backdrop-blur-sm text-purple-300 p-6 rounded-xl hover:bg-purple-500/30 transition-all duration-200 border border-purple-500/30"
             >
@@ -327,15 +326,15 @@ export default function Dashboard() {
               <span>Wallet Information</span>
               <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
             </summary>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
               {/* Address Card */}
               <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                 <h3 className="text-lg font-semibold text-white mb-3">Signing Address</h3>
                 <div className="bg-white/5 p-3 rounded border border-white/10">
-                  <p className="font-mono text-sm break-all mb-3 text-gray-300">{getChecksumAddress(wallet.address)}</p>
+                  <p className="font-mono text-sm break-all mb-3 text-gray-300">{wallet ? getChecksumAddress(wallet.address) : 'Not available'}</p>
                   <button
-                    onClick={() => copyToClipboard(getChecksumAddress(wallet.address))}
+                    onClick={() => wallet && copyToClipboard(getChecksumAddress(wallet.address))}
                     className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-2 rounded text-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200"
                   >
                     Copy Address
@@ -371,12 +370,12 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div className="bg-white/5 p-3 rounded border border-white/10">
-                  {showPrivateKey ? (
+                  {showPrivateKey && wallet ? (
                     <div>
                       <p className="font-mono text-sm break-all mb-3 text-gray-300">{wallet.privateKey}</p>
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => copyToClipboard(wallet.privateKey)}
+                          onClick={() => wallet && copyToClipboard(wallet.privateKey)}
                           className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-2 rounded text-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200"
                         >
                           Copy
@@ -409,7 +408,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div className="bg-white/5 p-3 rounded border border-white/10">
-                  {showMnemonic ? (
+                  {showMnemonic && wallet && wallet.mnemonic ? (
                     <div>
                       <div className="grid grid-cols-3 gap-2 mb-3">
                         {wallet.mnemonic.split(' ').map((word: string, index: number) => (
@@ -421,7 +420,7 @@ export default function Dashboard() {
                       </div>
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => copyToClipboard(wallet.mnemonic)}
+                          onClick={() => wallet && copyToClipboard(wallet.mnemonic)}
                           className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-2 rounded text-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200"
                         >
                           Copy Phrase
@@ -454,7 +453,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-8 max-w-md mx-4">
             <h3 className="text-2xl font-bold text-white mb-6 text-center">Choose Signature Type</h3>
-            
+
             <div className="space-y-4">
               <button
                 onClick={() => handleCreateDocument('single')}
@@ -468,7 +467,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               </button>
-              
+
               <button
                 onClick={() => handleCreateDocument('multi')}
                 className="w-full bg-blue-500/20 backdrop-blur-sm text-blue-300 p-6 rounded-xl hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30 text-left"
@@ -482,7 +481,7 @@ export default function Dashboard() {
                 </div>
               </button>
             </div>
-            
+
             <button
               onClick={() => setShowCreateModal(false)}
               className="w-full mt-6 bg-white/10 backdrop-blur-sm text-white px-4 py-3 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20"
