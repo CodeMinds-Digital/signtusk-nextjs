@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Get file info from path
     const fileName = filePath.split('/').pop() || 'download';
     const fileExtension = fileName.split('.').pop()?.toLowerCase();
-    
+
     // Determine content type
     const contentTypeMap: { [key: string]: string } = {
       'pdf': 'application/pdf',
@@ -42,6 +42,14 @@ export async function GET(request: NextRequest) {
     };
 
     const contentType = contentTypeMap[fileExtension || ''] || 'application/octet-stream';
+
+    // Check if data exists
+    if (!result.data) {
+      return NextResponse.json(
+        { error: 'File data not found' },
+        { status: 404 }
+      );
+    }
 
     // Convert blob to array buffer
     const arrayBuffer = await result.data.arrayBuffer();
@@ -81,6 +89,14 @@ export async function POST(request: NextRequest) {
     if (result.error) {
       return NextResponse.json(
         { error: 'Download failed', details: result.error.message },
+        { status: 404 }
+      );
+    }
+
+    // Check if data exists
+    if (!result.data) {
+      return NextResponse.json(
+        { error: 'File data not found' },
         { status: 404 }
       );
     }

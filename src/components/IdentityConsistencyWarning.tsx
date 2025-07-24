@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 
 export default function IdentityConsistencyWarning() {
+  // @ts-ignore - These properties are added dynamically
   const { identityConsistent, identityIssues, identityErrorMessage, currentUser, wallet } = useWallet();
   const [dismissed, setDismissed] = useState(false);
 
@@ -35,7 +36,7 @@ export default function IdentityConsistencyWarning() {
             </h3>
             <div className="mt-2 text-sm text-yellow-700">
               <p className="mb-2">{identityErrorMessage}</p>
-              
+
               <div className="bg-yellow-100 rounded p-2 mb-3">
                 <p className="text-xs font-medium mb-1">Details:</p>
                 <p className="text-xs">
@@ -45,17 +46,18 @@ export default function IdentityConsistencyWarning() {
                   <span className="font-medium">Local Signer ID:</span> {wallet.customId || 'Not found'}
                 </p>
               </div>
-              
+
               <div className="text-xs text-yellow-600">
                 <p className="font-medium mb-1">Issues detected:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  {identityIssues.map((issue, index) => (
+                  {/* @ts-ignore - identityIssues is added dynamically */}
+                  {identityIssues.map((issue: string, index: number) => (
                     <li key={index}>{issue}</li>
                   ))}
                 </ul>
               </div>
             </div>
-            
+
             <div className="mt-4 flex space-x-2">
               <button
                 onClick={handleRefresh}

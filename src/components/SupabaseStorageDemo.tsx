@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  uploadFileToSupabase, 
-  downloadFileFromSupabase, 
-  listFilesInSupabase, 
+import {
+  uploadFileToSupabase,
+  downloadFileFromSupabase,
+  listFilesInSupabase,
   deleteFileFromSupabase,
-  getPublicUrl 
+  getPublicUrl
 } from '@/lib/supabase-storage';
 
 interface FileItem {
@@ -45,7 +45,7 @@ export default function SupabaseStorageDemo() {
     setLoading(true);
     try {
       const result = await listFilesInSupabase('documents');
-      
+
       if (result.error) {
         setMessage(`Error loading files: ${result.error.message}`);
       } else {
@@ -74,14 +74,14 @@ export default function SupabaseStorageDemo() {
 
     setUploading(true);
     setUploadProgress(0);
-    
+
     try {
       // Create organized file path
       const timestamp = Date.now();
       const filePath = `demo/${timestamp}_${selectedFile.name}`;
-      
+
       const result = await uploadFileToSupabase(selectedFile, 'documents', filePath);
-      
+
       if (result.error) {
         setMessage(`Upload failed: ${result.error.message}`);
       } else {
@@ -90,7 +90,7 @@ export default function SupabaseStorageDemo() {
         // Reset file input
         const fileInput = document.getElementById('file-input') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
-        
+
         // Reload files list
         await loadFiles();
       }
@@ -105,12 +105,14 @@ export default function SupabaseStorageDemo() {
   // Handle file download
   const handleDownload = async (fileName: string) => {
     setDownloading(fileName);
-    
+
     try {
       const result = await downloadFileFromSupabase('documents', fileName);
-      
+
       if (result.error) {
         setMessage(`Download failed: ${result.error.message}`);
+      } else if (!result.data) {
+        setMessage(`Download failed: No data received`);
       } else {
         // Create download link
         const url = URL.createObjectURL(result.data);
@@ -121,7 +123,7 @@ export default function SupabaseStorageDemo() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
         setMessage(`Downloaded: ${fileName}`);
       }
     } catch (error) {
@@ -139,7 +141,7 @@ export default function SupabaseStorageDemo() {
 
     try {
       const result = await deleteFileFromSupabase('documents', fileName);
-      
+
       if (result.error) {
         setMessage(`Delete failed: ${result.error.message}`);
       } else {
@@ -168,7 +170,7 @@ export default function SupabaseStorageDemo() {
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Supabase Storage Demo</h1>
-      
+
       {/* Message Display */}
       {message && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -179,7 +181,7 @@ export default function SupabaseStorageDemo() {
       {/* File Upload Section */}
       <div className="mb-8 p-6 bg-gray-50 rounded-lg">
         <h2 className="text-xl font-semibold mb-4 text-gray-700">Upload File</h2>
-        
+
         <div className="space-y-4">
           <div>
             <input
@@ -189,7 +191,7 @@ export default function SupabaseStorageDemo() {
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
           </div>
-          
+
           {selectedFile && (
             <div className="p-3 bg-white rounded border">
               <p className="text-sm text-gray-600">
@@ -197,16 +199,16 @@ export default function SupabaseStorageDemo() {
               </p>
             </div>
           )}
-          
+
           {uploadProgress > 0 && (
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               ></div>
             </div>
           )}
-          
+
           <button
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
@@ -261,7 +263,7 @@ export default function SupabaseStorageDemo() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex space-x-2 ml-4">
                     <a
                       href={getPublicUrl('documents', file.name)}
@@ -271,7 +273,7 @@ export default function SupabaseStorageDemo() {
                     >
                       View
                     </a>
-                    
+
                     <button
                       onClick={() => handleDownload(file.name)}
                       disabled={downloading === file.name}
@@ -279,7 +281,7 @@ export default function SupabaseStorageDemo() {
                     >
                       {downloading === file.name ? 'Downloading...' : 'Download'}
                     </button>
-                    
+
                     <button
                       onClick={() => handleDelete(file.name)}
                       className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"

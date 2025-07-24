@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 // Read the current file
-let content = fs.readFileSync('src/lib/pdf-verification.ts', 'utf8');
+const content = fs.readFileSync('src/lib/pdf-verification.ts', 'utf8');
 
 // Read the fixed section
 const fixedSection = fs.readFileSync('verification-fix.txt', 'utf8');

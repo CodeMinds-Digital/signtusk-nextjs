@@ -18,7 +18,7 @@ export default function AuthTestPage() {
         const data = await response.json();
         setAuthCheck({ status: response.status, data });
       } catch (error) {
-        setAuthCheck({ error: error.message });
+        setAuthCheck({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     };
 
@@ -41,7 +41,7 @@ export default function AuthTestPage() {
       });
       const data = await response.json();
       console.log('Test auth created:', data);
-      
+
       // Refresh the page to see changes
       window.location.reload();
     } catch (error) {
@@ -57,7 +57,7 @@ export default function AuthTestPage() {
       });
       const data = await response.json();
       console.log('Auth cleared:', data);
-      
+
       // Refresh the page to see changes
       window.location.reload();
     } catch (error) {
@@ -69,7 +69,7 @@ export default function AuthTestPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-8">Authentication Test Page</h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Wallet Context State */}
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">

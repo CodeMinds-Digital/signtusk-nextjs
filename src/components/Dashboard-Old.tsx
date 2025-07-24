@@ -106,7 +106,7 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-white mb-2">SignTusk Dashboard</h1>
               <div className="flex items-center space-x-4">
                 <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg">
-                  <span className="text-white font-semibold">Signer ID: {wallet.customId}</span>
+                  <span className="text-white font-semibold">Signer ID: {wallet!.customId}</span>
                 </div>
                 <div className="text-green-400 text-sm flex items-center">
                   <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
@@ -150,7 +150,7 @@ export default function Dashboard() {
               Search
             </button>
           </div>
-          
+
           {searchResult && (
             <div className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10">
               {searchResult.found ? (
@@ -172,9 +172,9 @@ export default function Dashboard() {
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6">
             <h2 className="text-xl font-bold text-white mb-4">Signing Address</h2>
             <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-              <p className="font-mono text-sm break-all mb-3 text-gray-300">{getChecksumAddress(wallet.address)}</p>
+              <p className="font-mono text-sm break-all mb-3 text-gray-300">{getChecksumAddress(wallet!.address)}</p>
               <button
-                onClick={() => copyToClipboard(getChecksumAddress(wallet.address))}
+                onClick={() => copyToClipboard(getChecksumAddress(wallet!.address))}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm"
               >
                 Copy Address
@@ -205,10 +205,10 @@ export default function Dashboard() {
             <div className="bg-white/5 p-4 rounded-lg border border-white/10">
               {showPrivateKey ? (
                 <div>
-                  <p className="font-mono text-sm break-all mb-3 text-gray-300">{wallet.privateKey}</p>
+                  <p className="font-mono text-sm break-all mb-3 text-gray-300">{wallet!.privateKey}</p>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => copyToClipboard(wallet.privateKey)}
+                      onClick={() => copyToClipboard(wallet!.privateKey)}
                       className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm"
                     >
                       Copy
@@ -244,7 +244,7 @@ export default function Dashboard() {
               {showMnemonic ? (
                 <div>
                   <div className="grid grid-cols-3 gap-2 mb-4">
-                    {wallet.mnemonic.split(' ').map((word: string, index: number) => (
+                    {wallet!.mnemonic.split(' ').map((word: string, index: number) => (
                       <div key={index} className="flex items-center space-x-2 p-2 bg-white/10 rounded border border-white/20">
                         <span className="text-xs text-gray-400 w-6">{index + 1}.</span>
                         <span className="font-mono text-sm text-gray-300">{word}</span>
@@ -253,7 +253,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => copyToClipboard(wallet.mnemonic)}
+                      onClick={() => copyToClipboard(wallet!.mnemonic)}
                       className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm"
                     >
                       Copy Phrase
@@ -282,7 +282,7 @@ export default function Dashboard() {
         <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 mt-8">
           <h2 className="text-xl font-bold text-white mb-6">Document Signing Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <button 
+            <button
               onClick={() => window.location.href = '/integrated-signing'}
               className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-sm text-cyan-300 p-6 rounded-xl hover:from-cyan-500/30 hover:to-blue-500/30 transition-all duration-200 border border-cyan-500/30"
             >
@@ -290,7 +290,7 @@ export default function Dashboard() {
               <div className="font-semibold">Integrated Signing</div>
               <p className="text-sm opacity-75 mt-1">Supabase + sign_insert</p>
             </button>
-            <button 
+            <button
               onClick={() => window.location.href = '/enhanced-signing'}
               className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-sm text-green-300 p-6 rounded-xl hover:from-green-500/30 hover:to-emerald-500/30 transition-all duration-200 border border-green-500/30"
             >
@@ -298,7 +298,7 @@ export default function Dashboard() {
               <div className="font-semibold">Enhanced Signing</div>
               <p className="text-sm opacity-75 mt-1">Model 1.1 with PDF Placement</p>
             </button>
-            <button 
+            <button
               onClick={() => window.location.href = '/sign-document'}
               className="bg-green-500/20 backdrop-blur-sm text-green-300 p-6 rounded-xl hover:bg-green-500/30 transition-all duration-200 border border-green-500/30"
             >
@@ -306,7 +306,7 @@ export default function Dashboard() {
               <div className="font-semibold">Sign Document</div>
               <p className="text-sm opacity-75 mt-1">Model 1.1: Single Signature</p>
             </button>
-            <button 
+            <button
               onClick={() => window.location.href = '/multi-signature'}
               className="bg-blue-500/20 backdrop-blur-sm text-blue-300 p-6 rounded-xl hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30"
             >
@@ -314,7 +314,7 @@ export default function Dashboard() {
               <div className="font-semibold">Multi-Signature</div>
               <p className="text-sm opacity-75 mt-1">Model 1.2: Multi-Signature</p>
             </button>
-            <button 
+            <button
               onClick={() => window.location.href = '/sign-document'}
               className="bg-purple-500/20 backdrop-blur-sm text-purple-300 p-6 rounded-xl hover:bg-purple-500/30 transition-all duration-200 border border-purple-500/30"
             >

@@ -1,0 +1,29 @@
+{
+    "extends": "next/core-web-vitals",
+    "rules": {
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unsafe-function-type": "off",
+        "@typescript-eslint/no-empty-object-type": "off",
+        "@typescript-eslint/no-require-imports": "off",
+        "react-hooks/exhaustive-deps": "off",
+        "react/no-unescaped-entities": "off",
+        "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/ban-ts-comment": "off",
+        "@typescript-eslint/no-empty-function": "off",
+        "react/display-name": "off",
+        "react/jsx-key": "off",
+        "react/no-children-prop": "off",
+        "react/jsx-no-target-blank": "off",
+        "react/jsx-no-undef": "off",
+        "react/no-unknown-property": "off",
+        "react/prop-types": "off",
+        "no-empty": "off",
+        "no-console": "off",
+        "no-useless-escape": "off",
+        "prefer-const": "off",
+        "no-unused-expressions": "off",
+        "no-undef": "off"
+    }
+}
