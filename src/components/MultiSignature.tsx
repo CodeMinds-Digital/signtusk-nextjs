@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
-import { signDocument, verifySignature } from '@/lib/signing';
+import { signDocument } from '@/lib/signing';
 import { generateDocumentHash } from '@/lib/document';
 
 interface Signer {
@@ -58,7 +58,7 @@ export default function MultiSignature() {
     try {
       // Step 1: Generate Document Hash
       const documentHash = await generateDocumentHash(selectedFile);
-      
+
       // Step 2: Create Multi-Signature Request
       const multiSignDoc: MultiSignDocument = {
         id: Date.now().toString(),
@@ -84,12 +84,12 @@ export default function MultiSignature() {
       const existingDocs = JSON.parse(localStorage.getItem('multiSignDocuments') || '[]');
       existingDocs.push(multiSignDoc);
       localStorage.setItem('multiSignDocuments', JSON.stringify(existingDocs));
-      
+
       // Also add to pending signatures for other users (simulation)
       const pendingDocs = JSON.parse(localStorage.getItem('pendingSignatures') || '[]');
       pendingDocs.push(multiSignDoc);
       localStorage.setItem('pendingSignatures', JSON.stringify(pendingDocs));
-      
+
       setMultiSignDocuments(existingDocs);
       setSelectedFile(null);
       setSignerIds(['']);
@@ -97,7 +97,7 @@ export default function MultiSignature() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       alert('Multi-signature request initiated successfully!');
     } catch (error) {
       console.error('Error initiating multi-signature:', error);
@@ -114,16 +114,16 @@ export default function MultiSignature() {
     try {
       const pendingDocs = JSON.parse(localStorage.getItem('pendingSignatures') || '[]');
       const docIndex = pendingDocs.findIndex((doc: MultiSignDocument) => doc.id === docId);
-      
+
       if (docIndex === -1) {
         alert('Document not found');
         return;
       }
 
       const doc = pendingDocs[docIndex];
-      
+
       // Check if current user is a required signer
-      const signerIndex = doc.signers.findIndex(signer => signer.customId === wallet.customId);
+      const signerIndex = doc.signers.findIndex((signer: { customId: string }) => signer.customId === wallet.customId);
       if (signerIndex === -1) {
         alert('You are not authorized to sign this document');
         return;
@@ -136,7 +136,7 @@ export default function MultiSignature() {
 
       // Sign the document hash
       const signature = await signDocument(doc.documentHash, wallet.privateKey);
-      
+
       // Update signer status
       doc.signers[signerIndex] = {
         ...doc.signers[signerIndex],
@@ -146,7 +146,7 @@ export default function MultiSignature() {
       };
 
       // Check if all required signatures are collected
-      const signedCount = doc.signers.filter(signer => signer.status === 'signed').length;
+      const signedCount = doc.signers.filter((signer: { status: string }) => signer.status === 'signed').length;
       if (signedCount === doc.requiredSigners) {
         doc.status = 'completed';
         doc.completedAt = new Date().toISOString();
@@ -155,7 +155,7 @@ export default function MultiSignature() {
       // Update storage
       pendingDocs[docIndex] = doc;
       localStorage.setItem('pendingSignatures', JSON.stringify(pendingDocs));
-      
+
       // Also update the main documents list
       const allDocs = JSON.parse(localStorage.getItem('multiSignDocuments') || '[]');
       const mainDocIndex = allDocs.findIndex((d: MultiSignDocument) => d.id === docId);
@@ -166,7 +166,7 @@ export default function MultiSignature() {
 
       setPendingSignatures(pendingDocs);
       setMultiSignDocuments(allDocs);
-      
+
       alert('Document signed successfully!');
     } catch (error) {
       console.error('Error signing document:', error);
@@ -181,12 +181,12 @@ export default function MultiSignature() {
 
     const pendingDocs = JSON.parse(localStorage.getItem('pendingSignatures') || '[]');
     const docIndex = pendingDocs.findIndex((doc: MultiSignDocument) => doc.id === docId);
-    
+
     if (docIndex === -1) return;
 
     const doc = pendingDocs[docIndex];
-    const signerIndex = doc.signers.findIndex(signer => signer.customId === wallet.customId);
-    
+    const signerIndex = doc.signers.findIndex((signer: { customId: string }) => signer.customId === wallet.customId);
+
     if (signerIndex === -1) return;
 
     // Update signer status
@@ -196,7 +196,7 @@ export default function MultiSignature() {
     // Update storage
     pendingDocs[docIndex] = doc;
     localStorage.setItem('pendingSignatures', JSON.stringify(pendingDocs));
-    
+
     setPendingSignatures(pendingDocs);
     alert('Document signing request rejected');
   };
@@ -216,26 +216,26 @@ export default function MultiSignature() {
     setSignerIds(newSignerIds);
   };
 
-  const loadDocuments = () => {
+  const loadDocuments = React.useCallback(() => {
     const docs = JSON.parse(localStorage.getItem('multiSignDocuments') || '[]');
     const pending = JSON.parse(localStorage.getItem('pendingSignatures') || '[]');
-    
+
     // Filter pending documents for current user
-    const userPending = pending.filter((doc: MultiSignDocument) => 
-      doc.signers.some(signer => 
+    const userPending = pending.filter((doc: MultiSignDocument) =>
+      doc.signers.some(signer =>
         signer.customId === wallet?.customId && signer.status === 'pending'
       )
     );
-    
+
     setMultiSignDocuments(docs);
     setPendingSignatures(userPending);
-  };
+  }, [wallet]);
 
   React.useEffect(() => {
     if (wallet) {
       loadDocuments();
     }
-  }, [wallet]);
+  }, [wallet, loadDocuments]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -310,21 +310,19 @@ export default function MultiSignature() {
           <div className="flex border-b border-white/20">
             <button
               onClick={() => setActiveTab('initiate')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'initiate'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'initiate'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Initiate Multi-Sign
             </button>
             <button
               onClick={() => setActiveTab('pending')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 relative ${
-                activeTab === 'pending'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 relative ${activeTab === 'pending'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Pending Signatures
               {pendingSignatures.length > 0 && (
@@ -335,11 +333,10 @@ export default function MultiSignature() {
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'history'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'history'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               History
             </button>
@@ -458,7 +455,7 @@ export default function MultiSignature() {
                             <p className="text-gray-400 text-sm">Initiated by: {doc.initiatorId}</p>
                             <p className="text-gray-400 text-sm">Created: {formatDate(doc.createdAt)}</p>
                             {doc.description && (
-                              <p className="text-gray-300 text-sm mt-2 italic">"{doc.description}"</p>
+                              <p className="text-gray-300 text-sm mt-2 italic">&ldquo;{doc.description}&rdquo;</p>
                             )}
                           </div>
                           <div className="text-right">
@@ -532,7 +529,7 @@ export default function MultiSignature() {
                               <p className="text-gray-400 text-sm">Completed: {formatDate(doc.completedAt)}</p>
                             )}
                             {doc.description && (
-                              <p className="text-gray-300 text-sm mt-2 italic">"{doc.description}"</p>
+                              <p className="text-gray-300 text-sm mt-2 italic">&ldquo;{doc.description}&rdquo;</p>
                             )}
                           </div>
                           <div className="text-right">

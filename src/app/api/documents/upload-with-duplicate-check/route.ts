@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     if (metadata) {
       try {
         parsedMetadata = JSON.parse(metadata);
-      } catch (error) {
+      } catch (_error) {
         return NextResponse.json(
           { error: 'Invalid metadata format' },
           { status: 400 }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     // Step 2: Check for duplicate documents
     if (!forceUpload) {
       const duplicateCheck = await checkForDuplicateDocument(originalHash, custom_id);
-      
+
       if (duplicateCheck.isDuplicate && !duplicateCheck.canProceed) {
         // Block upload - document already exists and is completed
         return NextResponse.json({
@@ -142,8 +142,8 @@ export async function POST(request: NextRequest) {
       success: true,
       document: documentRecord,
       preview_url: originalUploadResult.publicUrl,
-      message: forceUpload 
-        ? 'Document uploaded successfully (duplicate confirmed)' 
+      message: forceUpload
+        ? 'Document uploaded successfully (duplicate confirmed)'
         : 'Document uploaded successfully'
     });
 

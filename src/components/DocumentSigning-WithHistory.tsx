@@ -2,15 +2,6 @@
 
 import React, { useState, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
-import { signDocument, verifySignature } from '@/lib/signing';
-import { generateDocumentHash, validateFile } from '@/lib/document';
-import { 
-  generateSignedPDF, 
-  downloadSignedPDF, 
-  validatePDFFile,
-  createVerificationQRData,
-  SignatureData 
-} from '@/lib/pdf-signature';
 
 interface DocumentMetadata {
   title: string;
@@ -31,6 +22,7 @@ interface SignedDocument {
   metadata?: DocumentMetadata;
   qrCodeData?: string;
   signedPdfBlob?: Blob;
+  signedPdfUrl?: string;
 }
 
 type WorkflowStep = 'upload' | 'metadata' | 'preview' | 'accept' | 'sign' | 'complete';
@@ -45,14 +37,18 @@ export default function DocumentSigning() {
     purpose: '',
     signerInfo: ''
   });
-  const [documentHash, setDocumentHash] = useState<string>('');
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>('');
   const [documentId, setDocumentId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [signedDocuments, setSignedDocuments] = useState<SignedDocument[]>([]);
+  interface VerificationDetails {
+    fileName: string;
+    total_signatures?: number;
+    [key: string]: unknown;
+  }
   const [verificationResult, setVerificationResult] = useState<{
     isValid: boolean;
-    details?: any;
+    details?: VerificationDetails;
     error?: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +84,7 @@ export default function DocumentSigning() {
       setDocumentId(result.document.id);
       setPdfPreviewUrl(result.preview_url);
       setCurrentStep('preview');
-      
+
     } catch (error) {
       console.error('Error uploading document:', error);
       alert(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -135,7 +131,7 @@ export default function DocumentSigning() {
         }
         alert('Document rejected. You can upload a new document.');
       }
-      
+
     } catch (error) {
       console.error(`Error ${action}ing document:`, error);
       alert(`Failed to ${action} document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -172,12 +168,12 @@ export default function DocumentSigning() {
       const result = await response.json();
       setCurrentStep('complete');
       await loadSignedDocuments();
-      
+
       alert(`Document signed successfully! 
       
 Original document: ${result.download_urls.original}
 Signed document: ${result.download_urls.signed}`);
-      
+
     } catch (error) {
       console.error('Error signing document:', error);
       alert(`Failed to sign document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -237,16 +233,32 @@ Signed document: ${result.download_urls.signed}`);
     }
   };
 
+  interface ApiHistoryDocument {
+    id: string;
+    file_name: string;
+    original_hash: string;
+    signatures: {
+      signature: string;
+      signer_address: string;
+      signer_id: string;
+      signed_at: string;
+    }[];
+    created_at: string;
+    file_size: number;
+    file_type: string;
+    metadata?: DocumentMetadata;
+    signed_public_url?: string;
+  }
+
   const loadSignedDocuments = async () => {
     try {
       const response = await fetch('/api/documents/history', {
-        method: 'GET',
-        credentials: 'include'
+        method: 'GET', credentials: 'include'
       });
 
       if (response.ok) {
         const result = await response.json();
-        const transformedDocs = result.documents.map((doc: any) => ({
+        const transformedDocs: SignedDocument[] = result.documents.map((doc: ApiHistoryDocument) => ({
           id: doc.id,
           fileName: doc.file_name,
           documentHash: doc.original_hash,
@@ -347,7 +359,7 @@ Signed document: ${result.download_urls.signed}`);
           </div>
           <h2 className="text-xl font-bold mb-2 text-white">Wallet Required</h2>
           <p className="text-gray-300 mb-6">
-            You're authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
+            You&apos;re authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
           </p>
           <div className="flex flex-col space-y-3">
             <button
@@ -403,31 +415,28 @@ Signed document: ${result.download_urls.signed}`);
           <div className="flex border-b border-white/20">
             <button
               onClick={() => setActiveTab('sign')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'sign'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'sign'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Sign Document
             </button>
             <button
               onClick={() => setActiveTab('verify')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'verify'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'verify'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Verify Document
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'history'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'history'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               History
             </button>
@@ -586,22 +595,20 @@ Signed document: ${result.download_urls.signed}`);
                 </div>
 
                 {verificationResult && (
-                  <div className={`p-6 rounded-lg border ${
-                    verificationResult.isValid 
-                      ? 'bg-green-500/10 border-green-500/30' 
-                      : 'bg-red-500/10 border-red-500/30'
-                  }`}>
+                  <div className={`p-6 rounded-lg border ${verificationResult.isValid
+                    ? 'bg-green-500/10 border-green-500/30'
+                    : 'bg-red-500/10 border-red-500/30'
+                    }`}>
                     <div className="flex items-center mb-4">
                       <span className="text-2xl mr-3">
                         {verificationResult.isValid ? '✅' : '❌'}
                       </span>
-                      <h4 className={`text-xl font-bold ${
-                        verificationResult.isValid ? 'text-green-300' : 'text-red-300'
-                      }`}>
+                      <h4 className={`text-xl font-bold ${verificationResult.isValid ? 'text-green-300' : 'text-red-300'
+                        }`}>
                         {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
                       </h4>
                     </div>
-                    
+
                     {verificationResult.details && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
                         <div>
@@ -657,11 +664,11 @@ Signed document: ${result.download_urls.signed}`);
                             <p className="text-gray-400 text-sm">Size: {formatFileSize(doc.fileSize)}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex space-x-3">
-                          {(doc as any).signedPdfUrl && (
+                          {doc.signedPdfUrl && (
                             <a
-                              href={(doc as any).signedPdfUrl}
+                              href={doc.signedPdfUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-2 rounded text-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold"
@@ -678,7 +685,7 @@ Signed document: ${result.download_urls.signed}`);
                         </div>
                       </div>
                     ))}
-                    
+
                     {signedDocuments.length > 5 && (
                       <div className="text-center">
                         <button

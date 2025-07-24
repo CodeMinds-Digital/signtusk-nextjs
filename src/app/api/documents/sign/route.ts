@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     if (metadata) {
       try {
         parsedMetadata = JSON.parse(metadata);
-      } catch (error) {
+      } catch (_error) {
         return NextResponse.json(
           { error: 'Invalid metadata format' },
           { status: 400 }

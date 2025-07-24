@@ -14,32 +14,39 @@ export default function DashboardPage() {
   const hasValidAuth = isAuthenticated && currentUser && wallet;
 
   useEffect(() => {
-    // Only redirect if we're sure the user is not authenticated
-    if (!isLoading && !hasValidAuth) {
-      // Set a timer for redirect to prevent flickering
-      const timer = setTimeout(() => {
-        router.replace('/');
-      }, 3000);
-      
-      setRedirectTimer(3);
-      
-      // Countdown timer
-      const countdown = setInterval(() => {
-        setRedirectTimer(prev => {
-          if (prev && prev > 1) {
-            return prev - 1;
-          } else {
-            clearInterval(countdown);
-            return null;
-          }
-        });
-      }, 1000);
-      
-      return () => {
-        clearTimeout(timer);
-        clearInterval(countdown);
-      };
-    }
+    // Add a small delay before checking authentication to give auth state time to initialize
+    const authCheckDelay = setTimeout(() => {
+      // Only redirect if we're sure the user is not authenticated
+      if (!isLoading && !hasValidAuth) {
+        // Set a timer for redirect to prevent flickering
+        const timer = setTimeout(() => {
+          router.replace('/');
+        }, 3000);
+
+        setRedirectTimer(3);
+
+        // Countdown timer
+        const countdown = setInterval(() => {
+          setRedirectTimer(prev => {
+            if (prev && prev > 1) {
+              return prev - 1;
+            } else {
+              clearInterval(countdown);
+              return null;
+            }
+          });
+        }, 1000);
+
+        return () => {
+          clearTimeout(timer);
+          clearInterval(countdown);
+        };
+      }
+    }, 500); // 500ms delay before checking auth state
+
+    return () => {
+      clearTimeout(authCheckDelay);
+    };
   }, [hasValidAuth, isLoading, router]);
 
   // Show loading while checking authentication
@@ -69,7 +76,7 @@ export default function DashboardPage() {
           <p className="text-gray-300 mb-6">
             Please login to access the dashboard. You need a signing identity to use document signing features.
           </p>
-          
+
           {redirectTimer && (
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-6">
               <p className="text-yellow-300 text-sm">
@@ -77,7 +84,7 @@ export default function DashboardPage() {
               </p>
             </div>
           )}
-          
+
           <div className="flex flex-col space-y-3">
             <button
               onClick={() => router.push('/')}

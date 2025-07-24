@@ -4,12 +4,12 @@ import { UserIdentityService } from '@/lib/user-identity';
 /**
  * Debug endpoint to test the database function directly
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('Testing database function...');
-    
+
     const result = await UserIdentityService.testCreateUserFunction();
-    
+
     return NextResponse.json({
       success: true,
       message: 'Database function test completed',
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Debug test error:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Debug test failed',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { wallet_address, display_name, email } = await request.json();
-    
+
     const testWalletAddress = wallet_address || `0xtest${Date.now()}`;
     const testDisplayName = display_name || 'Test User';
     const testEmail = email || 'test@example.com';
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('User creation test error:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'User creation test failed',
         details: error instanceof Error ? error.message : 'Unknown error'

@@ -55,7 +55,7 @@ export default function DocumentSigning() {
       setDocumentId(result.document.id);
       setPdfPreviewUrl(result.preview_url);
       setCurrentStep('preview');
-      
+
     } catch (error) {
       console.error('Error uploading document:', error);
       alert(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -102,7 +102,7 @@ export default function DocumentSigning() {
         }
         alert('Document rejected. You can upload a new document.');
       }
-      
+
     } catch (error) {
       console.error(`Error ${action}ing document:`, error);
       alert(`Failed to ${action} document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -138,12 +138,12 @@ export default function DocumentSigning() {
 
       const result = await response.json();
       setCurrentStep('complete');
-      
+
       alert(`Document signed successfully! 
       
 Original document: ${result.download_urls.original}
 Signed document: ${result.download_urls.signed}`);
-      
+
     } catch (error) {
       console.error('Error signing document:', error);
       alert(`Failed to sign document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -231,7 +231,7 @@ Signed document: ${result.download_urls.signed}`);
           </div>
           <h2 className="text-xl font-bold mb-2 text-white">Wallet Required</h2>
           <p className="text-gray-300 mb-6">
-            You're authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
+            You&apos;re authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
           </p>
           <div className="flex flex-col space-y-3">
             <button
@@ -502,7 +502,7 @@ Signed document: ${result.download_urls.signed}`);
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3 text-sm text-gray-300">
                       <p>• Your signature will be cryptographically generated using ECDSA</p>
                       <p>• The document hash will be signed with your private key</p>
@@ -538,7 +538,7 @@ Signed document: ${result.download_urls.signed}`);
                       <p className="text-gray-300 mb-6">
                         Your document has been cryptographically signed and is now available for download.
                       </p>
-                      
+
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
                         <div className="space-y-2 text-sm text-left">
                           <p className="text-green-300">✓ Document uploaded to secure storage</p>

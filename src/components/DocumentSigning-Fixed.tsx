@@ -3,14 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 import { signDocument, verifySignature } from '@/lib/signing';
-import { generateDocumentHash, validateFile } from '@/lib/document';
-import { 
-  generateSignedPDF, 
-  downloadSignedPDF, 
-  validatePDFFile,
-  createVerificationQRData,
-  SignatureData 
-} from '@/lib/pdf-signature';
+import { generateDocumentHash } from '@/lib/document';
 
 interface DocumentMetadata {
   title: string;
@@ -33,25 +26,31 @@ interface SignedDocument {
   signedPdfBlob?: Blob;
 }
 
-type WorkflowStep = 'upload' | 'metadata' | 'hash' | 'sign' | 'store' | 'complete';
+interface VerificationDetails {
+  id?: string;
+  fileName: string;
+  documentHash: string;
+  signature: string;
+  signerAddress?: string;
+  signerId?: string;
+  timestamp?: string;
+  fileSize: number;
+  fileType?: string;
+  metadata?: DocumentMetadata;
+  qrCodeData?: string;
+  signedPdfBlob?: Blob;
+}
 
 export default function DocumentSigning() {
   // SIMPLIFIED: Use more flexible authentication logic
   const { wallet, isAuthenticated, currentUser, isLoading, hasWallet } = useWallet();
   const [activeTab, setActiveTab] = useState<'sign' | 'verify' | 'history'>('sign');
-  const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [documentMetadata, setDocumentMetadata] = useState<DocumentMetadata>({
-    title: '',
-    purpose: '',
-    signerInfo: ''
-  });
-  const [documentHash, setDocumentHash] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [signedDocuments, setSignedDocuments] = useState<SignedDocument[]>([]);
   const [verificationResult, setVerificationResult] = useState<{
     isValid: boolean;
-    details?: any;
+    details?: VerificationDetails;
     error?: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,10 +71,10 @@ export default function DocumentSigning() {
     try {
       // Step 1: Generate Document Hash
       const documentHash = await generateDocumentHash(selectedFile);
-      
+
       // Step 2: Sign the Hash Off-Chain
       const signature = await signDocument(documentHash, wallet.privateKey);
-      
+
       // Step 3: Store Document and Signature Off-Chain (in local storage for demo)
       const signedDoc: SignedDocument = {
         id: Date.now().toString(),
@@ -93,13 +92,13 @@ export default function DocumentSigning() {
       const existingDocs = JSON.parse(localStorage.getItem('signedDocuments') || '[]');
       existingDocs.push(signedDoc);
       localStorage.setItem('signedDocuments', JSON.stringify(existingDocs));
-      
+
       setSignedDocuments(existingDocs);
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       alert('Document signed successfully!');
     } catch (error) {
       console.error('Error signing document:', error);
@@ -116,7 +115,7 @@ export default function DocumentSigning() {
     try {
       // Generate hash of the uploaded document
       const documentHash = await generateDocumentHash(file);
-      
+
       // If signature is provided, verify it
       if (providedSignature) {
         const isValid = await verifySignature(documentHash, providedSignature);
@@ -132,10 +131,10 @@ export default function DocumentSigning() {
       } else {
         // Check if this document exists in our signed documents
         const existingDocs = JSON.parse(localStorage.getItem('signedDocuments') || '[]');
-        const matchingDoc = existingDocs.find((doc: SignedDocument) => 
+        const matchingDoc = existingDocs.find((doc: SignedDocument) =>
           doc.documentHash === documentHash && doc.fileName === file.name
         );
-        
+
         if (matchingDoc) {
           const isValid = await verifySignature(documentHash, matchingDoc.signature);
           setVerificationResult({
@@ -246,7 +245,7 @@ export default function DocumentSigning() {
           </div>
           <h2 className="text-xl font-bold mb-2 text-white">Wallet Required</h2>
           <p className="text-gray-300 mb-6">
-            You're authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
+            You&apos;re authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
           </p>
           <div className="flex flex-col space-y-3">
             <button
@@ -302,31 +301,28 @@ export default function DocumentSigning() {
           <div className="flex border-b border-white/20">
             <button
               onClick={() => setActiveTab('sign')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'sign'
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'sign'
                   ? 'text-white border-b-2 border-purple-500 bg-white/5'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               Sign Document
             </button>
             <button
               onClick={() => setActiveTab('verify')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'verify'
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'verify'
                   ? 'text-white border-b-2 border-purple-500 bg-white/5'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               Verify Document
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'history'
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'history'
                   ? 'text-white border-b-2 border-purple-500 bg-white/5'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               Signing History
             </button>
@@ -377,7 +373,7 @@ export default function DocumentSigning() {
                 <div>
                   <h3 className="text-xl font-bold text-white mb-4">Verify Document Signature</h3>
                   <p className="text-gray-300 mb-6">
-                    Upload a document to verify its signature. The system will check if the document has been signed and verify the signature's authenticity.
+                    Upload a document to verify its signature. The system will check if the document has been signed and verify the signature&apos;s authenticity.
                   </p>
                 </div>
 
@@ -398,29 +394,27 @@ export default function DocumentSigning() {
                 </div>
 
                 {verificationResult && (
-                  <div className={`p-6 rounded-lg border ${
-                    verificationResult.isValid 
-                      ? 'bg-green-500/10 border-green-500/30' 
+                  <div className={`p-6 rounded-lg border ${verificationResult.isValid
+                      ? 'bg-green-500/10 border-green-500/30'
                       : 'bg-red-500/10 border-red-500/30'
-                  }`}>
+                    }`}>
                     <div className="flex items-center mb-4">
                       <span className="text-2xl mr-3">
                         {verificationResult.isValid ? '✅' : '❌'}
                       </span>
-                      <h4 className={`text-xl font-bold ${
-                        verificationResult.isValid ? 'text-green-300' : 'text-red-300'
-                      }`}>
+                      <h4 className={`text-xl font-bold ${verificationResult.isValid ? 'text-green-300' : 'text-red-300'
+                        }`}>
                         {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
                       </h4>
                     </div>
-                    
+
                     {verificationResult.details && (
                       <div className="space-y-2 text-sm">
                         <p className="text-gray-300">
                           <span className="font-semibold">Document:</span> {verificationResult.details.fileName}
                         </p>
                         <p className="text-gray-300">
-                          <span className="font-semibold">Hash:</span> 
+                          <span className="font-semibold">Hash:</span>
                           <span className="font-mono text-xs ml-2">{verificationResult.details.documentHash}</span>
                         </p>
                         {verificationResult.details.signerId && (
@@ -435,7 +429,7 @@ export default function DocumentSigning() {
                         )}
                       </div>
                     )}
-                    
+
                     {verificationResult.error && (
                       <p className="text-red-300">{verificationResult.error}</p>
                     )}
@@ -474,7 +468,7 @@ export default function DocumentSigning() {
                             <p className="text-gray-400 text-sm">Type: {doc.fileType}</p>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2 text-sm">
                           <div>
                             <span className="text-gray-400">Document Hash:</span>

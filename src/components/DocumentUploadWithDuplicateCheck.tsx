@@ -5,8 +5,19 @@ import { useWallet } from '@/contexts/WalletContext';
 import { generateDocumentHashServer } from '@/lib/document-server';
 import DuplicateDocumentModal from './DuplicateDocumentModal';
 
+interface UploadedDocument {
+  id: string;
+  file_name: string;
+  status: string;
+  created_at: string;
+  signed_at?: string;
+  signer_id?: string;
+  public_url?: string;
+  signed_public_url?: string;
+}
+
 interface DocumentUploadProps {
-  onUploadSuccess?: (document: any) => void;
+  onUploadSuccess?: (document: UploadedDocument) => void;
   onUploadError?: (error: string) => void;
   className?: string;
 }
@@ -40,9 +51,8 @@ export default function DocumentUploadWithDuplicateCheck({
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateInfo | null>(null);
   const [pendingUpload, setPendingUpload] = useState<{
     file: File;
-    metadata?: any;
   } | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,14 +78,14 @@ export default function DocumentUploadWithDuplicateCheck({
     try {
       // Generate hash to check for duplicates
       const documentHash = await generateDocumentHashServer(file);
-      
+
       // Check for duplicates via API
       const response = await fetch(`/api/documents/upload-with-duplicate-check?hash=${documentHash}&userId=${currentUser?.custom_id}`);
       const result = await response.json();
 
       if (result.success && result.duplicate_check) {
         const duplicateCheck = result.duplicate_check;
-        
+
         if (duplicateCheck.isDuplicate) {
           setDuplicateMessage(result.message);
           setDuplicateInfo({
@@ -83,7 +93,7 @@ export default function DocumentUploadWithDuplicateCheck({
             existing_document: duplicateCheck.existingDocument,
             can_proceed: duplicateCheck.canProceed
           });
-          
+
           if (duplicateCheck.action === 'block') {
             setShowDuplicateModal(true);
             return false; // Block upload
@@ -94,7 +104,7 @@ export default function DocumentUploadWithDuplicateCheck({
           }
         }
       }
-      
+
       return true; // No duplicates or can proceed
     } catch (error) {
       console.error('Error checking for duplicates:', error);
@@ -111,7 +121,7 @@ export default function DocumentUploadWithDuplicateCheck({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('forceUpload', forceUpload.toString());
-      
+
       // Add metadata if needed
       const metadata = {
         uploader_id: currentUser?.custom_id,
@@ -168,7 +178,7 @@ export default function DocumentUploadWithDuplicateCheck({
 
     // Check for duplicates first
     const canProceed = await checkForDuplicates(selectedFile);
-    
+
     if (canProceed) {
       await performUpload(selectedFile);
     }
@@ -176,7 +186,7 @@ export default function DocumentUploadWithDuplicateCheck({
 
   const handleDuplicateConfirm = async () => {
     setShowDuplicateModal(false);
-    
+
     if (pendingUpload) {
       await performUpload(pendingUpload.file, true); // Force upload
       setPendingUpload(null);
@@ -212,7 +222,7 @@ export default function DocumentUploadWithDuplicateCheck({
           className="hidden"
           id="file-upload"
         />
-        
+
         <label htmlFor="file-upload" className="cursor-pointer">
           <div className="space-y-2">
             <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
@@ -264,8 +274,8 @@ export default function DocumentUploadWithDuplicateCheck({
             <span className="text-gray-600">{uploadProgress}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
             ></div>
           </div>

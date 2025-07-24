@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Verify the signature
     try {
       const recoveredAddress = verifyMessage(challenge.nonce, signature);
-      
+
       if (recoveredAddress.toLowerCase() !== normalizedAddress) {
         return NextResponse.json(
           { error: 'Invalid signature' },
@@ -83,12 +83,17 @@ export async function POST(request: NextRequest) {
       .eq('wallet_address', normalizedAddress)
       .single();
 
+    if (walletError) {
+      console.error('Failed to fetch wallet data:', walletError);
+      // Optionally throw or handle error here
+    }
+
     const customId = walletData?.custom_id || null;
 
     // Generate JWT token with custom_id
-    const token = signJWT({ 
+    const token = signJWT({
       wallet_address: normalizedAddress,
-      custom_id: customId 
+      custom_id: customId
     });
 
     // Create response with HttpOnly cookie

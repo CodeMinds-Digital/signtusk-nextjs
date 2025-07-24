@@ -100,11 +100,11 @@ export default function DuplicateDocumentModal({
       <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div className="mt-3 text-center">
           {getIcon()}
-          
+
           <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
             {getTitle()}
           </h3>
-          
+
           <div className="mt-4 px-7 py-3">
             <p className="text-sm text-gray-500 mb-4">
               {message}
@@ -113,34 +113,34 @@ export default function DuplicateDocumentModal({
             {existing_document && (
               <div className="bg-gray-50 rounded-lg p-4 mb-4 text-left">
                 <h4 className="text-sm font-medium text-gray-900 mb-2">Existing Document Details:</h4>
-                
+
                 <div className="space-y-2 text-xs">
                   <div>
                     <span className="font-medium text-gray-600">File Name:</span>
                     <span className="ml-2 text-gray-800">{existing_document.file_name}</span>
                   </div>
-                  
+
                   <div>
                     <span className="font-medium text-gray-600">Status:</span>
                     <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(existing_document.status)}`}>
                       {existing_document.status.toUpperCase()}
                     </span>
                   </div>
-                  
+
                   <div>
                     <span className="font-medium text-gray-600">Uploaded:</span>
                     <span className="ml-2 text-gray-800">
                       {new Date(existing_document.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  
+
                   {existing_document.signer_id && (
                     <div>
                       <span className="font-medium text-gray-600">Signer:</span>
                       <span className="ml-2 text-gray-800 font-mono">{existing_document.signer_id}</span>
                     </div>
                   )}
-                  
+
                   {existing_document.signed_at && (
                     <div>
                       <span className="font-medium text-gray-600">Signed:</span>
@@ -170,7 +170,7 @@ export default function DuplicateDocumentModal({
                 onClick={onCancel}
                 className="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
               >
-                OK, I'll Upload a New Document
+                OK, I&apos;ll Upload a New Document
               </button>
             ) : action === 'confirm' ? (
               // Show both options for confirmation needed

@@ -2,26 +2,24 @@
 
 import React, { useState, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
-import { signDocument, verifySignature } from '@/lib/signing';
+import { signDocument } from '@/lib/signing';
 import { generateDocumentHash } from '@/lib/document';
-import { 
-  uploadFileToSupabase, 
-  downloadFileFromSupabase, 
-  uploadBlobToSupabase,
-  getPublicUrl 
+import {
+  uploadFileToSupabase,
+  downloadFileFromSupabase,
+  uploadBlobToSupabase
 } from '@/lib/supabase-storage';
-import { 
-  insertSignaturesIntoPDF, 
-  createSignatureData, 
+import {
+  insertSignaturesIntoPDF,
+  createSignatureData,
   createStampData,
   validatePDFForSigning,
-  SignatureData 
+  SignatureData
 } from '@/lib/pdf-signature-insert';
-import { 
-  DocumentDatabase, 
-  AuditLogger, 
-  DocumentRecord, 
-  SignatureRecord 
+import {
+  DocumentDatabase,
+  AuditLogger,
+  DocumentRecord
 } from '@/lib/database';
 
 interface DocumentMetadata {
@@ -53,6 +51,11 @@ export default function IntegratedDocumentSigning() {
 
   // Step 1: Upload & Preview Document with Database Integration
   const handleFileUpload = async (file: File) => {
+    if (!wallet) {
+      alert('Wallet not connected. Please login.');
+      return;
+    }
+
     // Validate PDF file
     const validation = validatePDFForSigning(file);
     if (!validation.isValid) {
@@ -67,8 +70,8 @@ export default function IntegratedDocumentSigning() {
       setDocumentHash(hash);
 
       // Upload to Supabase Storage
-      const uploadPath = `documents/${wallet?.customId}/${Date.now()}_${file.name}`;
-      const { data, error, publicUrl } = await uploadFileToSupabase(file, 'documents', uploadPath);
+      const uploadPath = `documents/${wallet.customId}/${Date.now()}_${file.name}`;
+      const { error, publicUrl } = await uploadFileToSupabase(file, 'documents', uploadPath);
 
       if (error) {
         throw new Error(`Upload failed: ${error.message}`);
@@ -84,19 +87,23 @@ export default function IntegratedDocumentSigning() {
         public_url: publicUrl,
         status: 'uploaded',
         metadata: {
-          uploader_id: wallet?.customId,
-          uploader_address: wallet?.address,
+          uploader_id: wallet.customId,
+          uploader_address: wallet.address,
           title: documentMetadata.title,
           purpose: documentMetadata.purpose
         }
       });
 
-      setCurrentDocumentId(documentRecord.id!);
+      if (!documentRecord.id) {
+        throw new Error('Failed to create document record in database.');
+      }
+
+      setCurrentDocumentId(documentRecord.id);
 
       // Log upload audit
       await AuditLogger.logDocumentUpload(
-        documentRecord.id!,
-        wallet?.customId!,
+        documentRecord.id,
+        wallet.customId,
         {
           file_name: file.name,
           file_size: file.size,
@@ -110,7 +117,7 @@ export default function IntegratedDocumentSigning() {
       setUploadedPath(uploadPath);
       setPreviewUrl(publicUrl || '');
       setCurrentStep('preview');
-      
+
       console.log('Document uploaded successfully to:', uploadPath);
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -184,7 +191,7 @@ export default function IntegratedDocumentSigning() {
 
       // Trigger signature insertion
       await insertSignatureIntoPDF();
-      
+
     } catch (error) {
       console.error('Error in accept flow:', error);
       alert('Failed to process document. Please try again.');
@@ -202,7 +209,7 @@ export default function IntegratedDocumentSigning() {
     try {
       // Download the original PDF from Supabase
       const { data: pdfBlob, error } = await downloadFileFromSupabase('documents', uploadedPath);
-      
+
       if (error || !pdfBlob) {
         throw new Error('Failed to download PDF from Supabase');
       }
@@ -222,8 +229,8 @@ export default function IntegratedDocumentSigning() {
 
       // Insert signatures using sign_insert logic
       const signedPdfBytes = await insertSignaturesIntoPDF(
-        pdfBytes, 
-        [signatureData], 
+        pdfBytes,
+        [signatureData],
         stampData
       );
 
@@ -237,7 +244,7 @@ export default function IntegratedDocumentSigning() {
 
       // Upload signed PDF to Supabase as new version
       const signedPath = `signed/${wallet.customId}/${Date.now()}_signed_${selectedFile.name}`;
-      const { data, error: uploadError, publicUrl } = await uploadBlobToSupabase(
+      const { error: uploadError, publicUrl } = await uploadBlobToSupabase(
         signedPdfBlob,
         'documents',
         signedPath,
@@ -285,10 +292,10 @@ export default function IntegratedDocumentSigning() {
 
       // Load updated documents
       await loadSignedDocuments();
-      
+
       setCurrentStep('complete');
       console.log('Signed PDF uploaded successfully to:', signedPath);
-      
+
     } catch (error) {
       console.error('Error inserting signature:', error);
       throw error;
@@ -296,7 +303,7 @@ export default function IntegratedDocumentSigning() {
   };
 
   // Load signed documents from database
-  const loadSignedDocuments = async () => {
+  const loadSignedDocuments = React.useCallback(async () => {
     if (!wallet) return;
 
     try {
@@ -307,13 +314,13 @@ export default function IntegratedDocumentSigning() {
       // Fallback to empty array
       setSignedDocuments([]);
     }
-  };
+  }, [wallet]);
 
   React.useEffect(() => {
     if (wallet) {
       loadSignedDocuments();
     }
-  }, [wallet]);
+  }, [wallet, loadSignedDocuments]);
 
   const handleStartNew = () => {
     setCurrentStep('upload');
@@ -346,7 +353,7 @@ export default function IntegratedDocumentSigning() {
     const steps: WorkflowStep[] = ['upload', 'preview', 'accept', 'sign', 'complete'];
     const currentIndex = steps.indexOf(currentStep);
     const stepIndex = steps.indexOf(step);
-    
+
     if (stepIndex < currentIndex) return 'completed';
     if (stepIndex === currentIndex) return 'current';
     return 'pending';
@@ -401,26 +408,23 @@ export default function IntegratedDocumentSigning() {
               const status = getStepStatus(step as WorkflowStep);
               return (
                 <div key={step} className="flex items-center">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${
-                    status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
-                    status === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
-                    'bg-gray-600 border-gray-600 text-gray-300'
-                  }`}>
+                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
+                      status === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
+                        'bg-gray-600 border-gray-600 text-gray-300'
+                    }`}>
                     <span className="text-lg">{icon}</span>
                   </div>
                   <div className="ml-3">
-                    <p className={`font-semibold text-sm ${
-                      status === 'completed' ? 'text-green-400' :
-                      status === 'current' ? 'text-purple-400' :
-                      'text-gray-400'
-                    }`}>
+                    <p className={`font-semibold text-sm ${status === 'completed' ? 'text-green-400' :
+                        status === 'current' ? 'text-purple-400' :
+                          'text-gray-400'
+                      }`}>
                       {label}
                     </p>
                   </div>
                   {index < 4 && (
-                    <div className={`w-16 h-0.5 mx-4 ${
-                      status === 'completed' ? 'bg-green-500' : 'bg-gray-600'
-                    }`} />
+                    <div className={`w-16 h-0.5 mx-4 ${status === 'completed' ? 'bg-green-500' : 'bg-gray-600'
+                      }`} />
                   )}
                 </div>
               );
@@ -453,7 +457,7 @@ export default function IntegratedDocumentSigning() {
                   accept=".pdf"
                   disabled={isProcessing}
                 />
-                
+
                 {selectedFile && (
                   <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
                     <p className="text-white font-semibold">{selectedFile.name}</p>
@@ -511,7 +515,7 @@ export default function IntegratedDocumentSigning() {
                     Open in New Tab
                   </a>
                 </div>
-                
+
                 <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                   <iframe
                     src={previewUrl}
@@ -529,7 +533,7 @@ export default function IntegratedDocumentSigning() {
 
               <div className="bg-white/5 rounded-lg border border-white/10 p-6 space-y-4">
                 <h4 className="text-lg font-semibold text-white">Document Metadata</h4>
-                
+
                 <div>
                   <label className="block text-white font-semibold mb-2">Title</label>
                   <input
@@ -742,15 +746,14 @@ export default function IntegratedDocumentSigning() {
                     </div>
                     <div className="text-right">
                       <p className="text-gray-400 text-sm">Size: {formatFileSize(doc.file_size)}</p>
-                      <p className={`text-sm ${
-                        doc.status === 'signed' ? 'text-green-400' : 
-                        doc.status === 'uploaded' ? 'text-yellow-400' : 'text-gray-400'
-                      }`}>
+                      <p className={`text-sm ${doc.status === 'signed' ? 'text-green-400' :
+                          doc.status === 'uploaded' ? 'text-yellow-400' : 'text-gray-400'
+                        }`}>
                         📊 {doc.status?.toUpperCase()}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex space-x-3">
                     {doc.public_url && (
                       <a

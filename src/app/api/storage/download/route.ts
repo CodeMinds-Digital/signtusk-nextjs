@@ -44,6 +44,12 @@ export async function GET(request: NextRequest) {
     const contentType = contentTypeMap[fileExtension || ''] || 'application/octet-stream';
 
     // Convert blob to array buffer
+    if (!result.data) {
+      return NextResponse.json(
+        { error: 'Download failed: No data found' },
+        { status: 404 }
+      );
+    }
     const arrayBuffer = await result.data.arrayBuffer();
 
     // Return file as response
@@ -86,6 +92,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert blob to base64 for JSON response
+    if (!result.data) {
+      return NextResponse.json(
+        { error: 'Download failed: No data found' },
+        { status: 404 }
+      );
+    }
     const arrayBuffer = await result.data.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString('base64');
 

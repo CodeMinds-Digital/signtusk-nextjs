@@ -3,13 +3,43 @@
 import React, { useState, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 
+type Signature = {
+  signerId?: string;
+  signerName?: string;
+  timestamp?: string;
+  isValid: boolean;
+  signature: string;
+};
+
+type Metadata = {
+  title?: string;
+  purpose?: string;
+  signerInfo?: string;
+};
+
+type VerificationDetails = {
+  fileName?: string;
+  fileSize?: number;
+  documentHash?: string;
+  signatures?: Signature[];
+  metadata?: Metadata;
+  verification_method?: string;
+  isSignedPDF?: boolean;
+  total_signatures?: number;
+  valid_signatures?: number;
+  originalHash?: string;
+  signedHash?: string;
+};
+
+type VerificationResult = {
+  isValid: boolean;
+  details?: VerificationDetails;
+  error?: string;
+};
+
 export default function VerifyPage() {
-  const { wallet, isLoading } = useWallet();
-  const [verificationResult, setVerificationResult] = useState<{
-    isValid: boolean;
-    details?: any;
-    error?: string;
-  } | null>(null);
+  const { isLoading } = useWallet(); // Removed unused 'wallet'
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const verifyFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -18,14 +48,12 @@ export default function VerifyPage() {
 
     setIsProcessing(true);
     try {
-      // Create form data for API call
       const formData = new FormData();
       formData.append('file', file);
       if (providedSignature) {
         formData.append('signature', providedSignature);
       }
 
-      // Call the document verification API
       const response = await fetch('/api/documents/verify', {
         method: 'POST',
         body: formData
@@ -36,7 +64,7 @@ export default function VerifyPage() {
       }
 
       const result = await response.json();
-      const verification = result.verification;
+      const verification: VerificationResult = result.verification;
 
       setVerificationResult({
         isValid: verification.isValid,
@@ -138,32 +166,29 @@ export default function VerifyPage() {
             {verificationResult && (
               <div className="space-y-6">
                 {/* Main Verification Status */}
-                <div className={`p-6 rounded-lg border ${
-                  verificationResult.isValid 
-                    ? 'bg-green-500/10 border-green-500/30' 
+                <div className={`p-6 rounded-lg border ${verificationResult.isValid
+                    ? 'bg-green-500/10 border-green-500/30'
                     : 'bg-red-500/10 border-red-500/30'
-                }`}>
+                  }`}>
                   <div className="flex items-center mb-4">
                     <span className="text-3xl mr-4">
                       {verificationResult.isValid ? '✅' : '❌'}
                     </span>
                     <div>
-                      <h4 className={`text-2xl font-bold ${
-                        verificationResult.isValid ? 'text-green-300' : 'text-red-300'
-                      }`}>
+                      <h4 className={`text-2xl font-bold ${verificationResult.isValid ? 'text-green-300' : 'text-red-300'
+                        }`}>
                         {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
                       </h4>
-                      <p className={`text-sm ${
-                        verificationResult.isValid ? 'text-green-200' : 'text-red-200'
-                      }`}>
-                        {verificationResult.isValid 
-                          ? 'Document signature has been successfully verified' 
+                      <p className={`text-sm ${verificationResult.isValid ? 'text-green-200' : 'text-red-200'
+                        }`}>
+                        {verificationResult.isValid
+                          ? 'Document signature has been successfully verified'
                           : 'Document signature verification failed'
                         }
                       </p>
                     </div>
                   </div>
-                  
+
                   {verificationResult.details && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
@@ -182,7 +207,7 @@ export default function VerifyPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {verificationResult.error && (
                     <div className="mt-4 p-4 bg-red-500/20 border border-red-500/40 rounded-lg">
                       <p className="text-red-300 font-semibold">Error:</p>
@@ -197,7 +222,7 @@ export default function VerifyPage() {
                     {/* Signature Details */}
                     <div className="bg-white/5 rounded-lg border border-white/10 p-6">
                       <h4 className="text-lg font-bold text-white mb-4">📋 Signature Details</h4>
-                      
+
                       <div className="space-y-4">
                         {/* Signature Information */}
                         {verificationResult.details.signatures && verificationResult.details.signatures.length > 0 && (

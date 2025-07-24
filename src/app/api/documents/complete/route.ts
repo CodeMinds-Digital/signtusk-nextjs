@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Get current document to verify it exists and is in 'signed' status
     const currentDocument = await DocumentDatabase.getDocument(documentId);
-    
+
     if (!currentDocument) {
       return NextResponse.json(
         { error: 'Document not found' },
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update document status to 'completed'
-    const updatedDocument = await DocumentDatabase.updateDocument(documentId, {
+    await DocumentDatabase.updateDocument(documentId, {
       status: 'completed',
       metadata: {
         ...currentDocument.metadata,
@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
         signed_hash: signedHash
       }
     });
+
+
 
     // Create audit log for completion
     await AuditLogger.logDocumentSigned(
@@ -80,9 +82,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error marking document as completed:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -107,7 +109,7 @@ export async function GET(request: NextRequest) {
     }
 
     const document = await DocumentDatabase.getDocument(documentId);
-    
+
     if (!document) {
       return NextResponse.json(
         { error: 'Document not found' },
@@ -124,9 +126,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error checking document completion status:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

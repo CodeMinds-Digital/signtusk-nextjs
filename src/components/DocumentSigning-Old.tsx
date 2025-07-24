@@ -2,16 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
-import { signDocument, verifySignature } from '@/lib/signing';
-import { generateDocumentHash, validateFile } from '@/lib/document';
-import { 
-  generateSignedPDF, 
-  downloadSignedPDF, 
-  validatePDFFile,
-  createVerificationQRData,
-  SignatureData 
-} from '@/lib/pdf-signature';
 
+// Note: Some unused imports were removed as the logic is now handled by the API.
 interface DocumentMetadata {
   title: string;
   purpose: string;
@@ -31,6 +23,7 @@ interface SignedDocument {
   metadata?: DocumentMetadata;
   qrCodeData?: string;
   signedPdfBlob?: Blob;
+  signedPdfUrl?: string;
 }
 
 type WorkflowStep = 'upload' | 'metadata' | 'preview' | 'accept' | 'sign' | 'complete';
@@ -46,14 +39,36 @@ export default function DocumentSigning() {
     purpose: '',
     signerInfo: ''
   });
-  const [documentHash, setDocumentHash] = useState<string>('');
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>('');
   const [documentId, setDocumentId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [signedDocuments, setSignedDocuments] = useState<SignedDocument[]>([]);
+
+  interface SignatureDetail {
+    signerId: string;
+    signerName: string;
+    timestamp: string;
+    isValid: boolean;
+    signature: string;
+  }
+
+  interface VerificationDetails {
+    fileName: string;
+    fileSize: number;
+    documentHash: string;
+    signatures: SignatureDetail[];
+    metadata?: DocumentMetadata;
+    verification_method?: string;
+    isSignedPDF?: boolean;
+    total_signatures?: number;
+    valid_signatures?: number;
+    originalHash?: string;
+    signedHash?: string;
+  }
+
   const [verificationResult, setVerificationResult] = useState<{
     isValid: boolean;
-    details?: any;
+    details?: VerificationDetails;
     error?: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,14 +105,14 @@ export default function DocumentSigning() {
       }
 
       const result = await response.json();
-      
+
       // Set document ID and preview URL
       setDocumentId(result.document.id);
       setPdfPreviewUrl(result.preview_url);
-      
+
       // Move to preview step
       setCurrentStep('preview');
-      
+
     } catch (error) {
       console.error('Error uploading document:', error);
       alert(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -146,7 +161,7 @@ export default function DocumentSigning() {
         }
         alert('Document rejected. You can upload a new document.');
       }
-      
+
     } catch (error) {
       console.error(`Error ${action}ing document:`, error);
       alert(`Failed to ${action} document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -182,18 +197,18 @@ export default function DocumentSigning() {
       }
 
       const result = await response.json();
-      
+
       // Move to complete step
       setCurrentStep('complete');
-      
+
       // Refresh the signed documents list
       await loadSignedDocuments();
-      
+
       alert(`Document signed successfully! 
       
 Original document: ${result.download_urls.original}
 Signed document: ${result.download_urls.signed}`);
-      
+
     } catch (error) {
       console.error('Error signing document:', error);
       alert(`Failed to sign document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -256,18 +271,32 @@ Signed document: ${result.download_urls.signed}`);
     }
   };
 
+  interface ApiDocument {
+    id: string;
+    file_name: string;
+    original_hash: string;
+    signatures: {
+      signature: string;
+      signer_address: string;
+      signer_id: string;
+      signed_at: string;
+    }[];
+    created_at: string;
+    file_size: number;
+    file_type: string;
+    metadata: DocumentMetadata;
+    signed_public_url: string;
+  }
+
   const loadSignedDocuments = async () => {
     try {
       // Load from API instead of localStorage
-      const response = await fetch('/api/documents/history', {
-        method: 'GET',
-        credentials: 'include'
-      });
+      const response = await fetch('/api/documents/history', { method: 'GET', credentials: 'include' });
 
       if (response.ok) {
         const result = await response.json();
         // Transform API response to match component interface
-        const transformedDocs = result.documents.map((doc: any) => ({
+        const transformedDocs: SignedDocument[] = result.documents.map((doc: ApiDocument) => ({
           id: doc.id,
           fileName: doc.file_name,
           documentHash: doc.original_hash,
@@ -372,7 +401,7 @@ Signed document: ${result.download_urls.signed}`);
           </div>
           <h2 className="text-xl font-bold mb-2 text-white">Wallet Required</h2>
           <p className="text-gray-300 mb-6">
-            You're authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
+            You&apos;re authenticated but need to unlock your wallet to sign documents. Please login with your wallet password.
           </p>
           <div className="flex flex-col space-y-3">
             <button
@@ -428,31 +457,28 @@ Signed document: ${result.download_urls.signed}`);
           <div className="flex border-b border-white/20">
             <button
               onClick={() => setActiveTab('sign')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'sign'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'sign'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Sign Document
             </button>
             <button
               onClick={() => setActiveTab('verify')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'verify'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'verify'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Verify Document
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'history'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'history'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Signing History
             </button>
@@ -677,7 +703,7 @@ Signed document: ${result.download_urls.signed}`);
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-3 text-sm text-gray-300">
                         <p>• Your signature will be cryptographically generated using ECDSA</p>
                         <p>• The document hash will be signed with your private key</p>
@@ -713,7 +739,7 @@ Signed document: ${result.download_urls.signed}`);
                         <p className="text-gray-300 mb-6">
                           Your document has been cryptographically signed and is now available for download.
                         </p>
-                        
+
                         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
                           <div className="space-y-2 text-sm text-left">
                             <p className="text-green-300">✓ Document uploaded to secure storage</p>
@@ -751,7 +777,7 @@ Signed document: ${result.download_urls.signed}`);
                 <div>
                   <h3 className="text-xl font-bold text-white mb-4">Verify Document Signature</h3>
                   <p className="text-gray-300 mb-6">
-                    Upload a document to verify its signature. The system will check if the document has been signed and verify the signature's authenticity.
+                    Upload a document to verify its signature. The system will check if the document has been signed and verify the signature&apos;s authenticity.
                   </p>
                 </div>
 
@@ -774,22 +800,20 @@ Signed document: ${result.download_urls.signed}`);
                 {verificationResult && (
                   <div className="space-y-6">
                     {/* Main Verification Status */}
-                    <div className={`p-6 rounded-lg border ${
-                      verificationResult.isValid 
-                        ? 'bg-green-500/10 border-green-500/30' 
-                        : 'bg-red-500/10 border-red-500/30'
-                    }`}>
+                    <div className={`p-6 rounded-lg border ${verificationResult.isValid
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-red-500/10 border-red-500/30'
+                      }`}>
                       <div className="flex items-center mb-4">
                         <span className="text-2xl mr-3">
                           {verificationResult.isValid ? '✅' : '❌'}
                         </span>
-                        <h4 className={`text-xl font-bold ${
-                          verificationResult.isValid ? 'text-green-300' : 'text-red-300'
-                        }`}>
+                        <h4 className={`text-xl font-bold ${verificationResult.isValid ? 'text-green-300' : 'text-red-300'
+                          }`}>
                           {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
                         </h4>
                       </div>
-                      
+
                       {verificationResult.details && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
@@ -808,7 +832,7 @@ Signed document: ${result.download_urls.signed}`);
                           </div>
                         </div>
                       )}
-                      
+
                       {verificationResult.error && (
                         <div className="mt-4 p-4 bg-red-500/20 border border-red-500/40 rounded-lg">
                           <p className="text-red-300 font-semibold">Error:</p>
@@ -821,13 +845,13 @@ Signed document: ${result.download_urls.signed}`);
                     {verificationResult.isValid && verificationResult.details && (
                       <div className="bg-white/5 rounded-lg border border-white/10 p-6">
                         <h4 className="text-lg font-bold text-white mb-4">📋 Signature Details</h4>
-                        
+
                         <div className="space-y-4">
                           {/* Signature Information */}
                           {verificationResult.details.signatures && verificationResult.details.signatures.length > 0 && (
                             <div>
                               <h5 className="text-white font-semibold mb-3">Digital Signatures ({verificationResult.details.signatures.length})</h5>
-                              {verificationResult.details.signatures.map((sig: any, index: number) => (
+                              {verificationResult.details.signatures.map((sig: SignatureDetail, index: number) => (
                                 <div key={index} className="bg-black/20 rounded-lg p-4 mb-3">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                                     <div>
@@ -1024,7 +1048,7 @@ Signed document: ${result.download_urls.signed}`);
                             <p className="text-gray-400 text-sm">Type: {doc.fileType}</p>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2 text-sm mb-4">
                           <div>
                             <span className="text-gray-400">Document Hash:</span>
@@ -1045,12 +1069,12 @@ Signed document: ${result.download_urls.signed}`);
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Download Links */}
-                        {(doc as any).signedPdfUrl && (
+                        {doc.signedPdfUrl && (
                           <div className="flex space-x-3">
                             <a
-                              href={(doc as any).signedPdfUrl}
+                              href={doc.signedPdfUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm font-semibold"
