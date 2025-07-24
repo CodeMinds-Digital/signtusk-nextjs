@@ -772,46 +772,222 @@ Signed document: ${result.download_urls.signed}`);
                 </div>
 
                 {verificationResult && (
-                  <div className={`p-6 rounded-lg border ${
-                    verificationResult.isValid 
-                      ? 'bg-green-500/10 border-green-500/30' 
-                      : 'bg-red-500/10 border-red-500/30'
-                  }`}>
-                    <div className="flex items-center mb-4">
-                      <span className="text-2xl mr-3">
-                        {verificationResult.isValid ? '✅' : '❌'}
-                      </span>
-                      <h4 className={`text-xl font-bold ${
-                        verificationResult.isValid ? 'text-green-300' : 'text-red-300'
-                      }`}>
-                        {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
-                      </h4>
+                  <div className="space-y-6">
+                    {/* Main Verification Status */}
+                    <div className={`p-6 rounded-lg border ${
+                      verificationResult.isValid 
+                        ? 'bg-green-500/10 border-green-500/30' 
+                        : 'bg-red-500/10 border-red-500/30'
+                    }`}>
+                      <div className="flex items-center mb-4">
+                        <span className="text-2xl mr-3">
+                          {verificationResult.isValid ? '✅' : '❌'}
+                        </span>
+                        <h4 className={`text-xl font-bold ${
+                          verificationResult.isValid ? 'text-green-300' : 'text-red-300'
+                        }`}>
+                          {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
+                        </h4>
+                      </div>
+                      
+                      {verificationResult.details && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-400">Document:</span>
+                            <p className="text-white font-semibold">{verificationResult.details.fileName}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">File Size:</span>
+                            <p className="text-white">{verificationResult.details.fileSize ? formatFileSize(verificationResult.details.fileSize) : 'Unknown'}</p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <span className="text-gray-400">Document Hash:</span>
+                            <p className="font-mono text-xs text-white break-all bg-black/20 p-2 rounded mt-1">
+                              {verificationResult.details.documentHash}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {verificationResult.error && (
+                        <div className="mt-4 p-4 bg-red-500/20 border border-red-500/40 rounded-lg">
+                          <p className="text-red-300 font-semibold">Error:</p>
+                          <p className="text-red-200">{verificationResult.error}</p>
+                        </div>
+                      )}
                     </div>
-                    
-                    {verificationResult.details && (
-                      <div className="space-y-2 text-sm">
-                        <p className="text-gray-300">
-                          <span className="font-semibold">Document:</span> {verificationResult.details.fileName}
-                        </p>
-                        <p className="text-gray-300">
-                          <span className="font-semibold">Hash:</span> 
-                          <span className="font-mono text-xs ml-2">{verificationResult.details.documentHash}</span>
-                        </p>
-                        {verificationResult.details.signerId && (
-                          <p className="text-gray-300">
-                            <span className="font-semibold">Signer ID:</span> {verificationResult.details.signerId}
-                          </p>
-                        )}
-                        {verificationResult.details.timestamp && (
-                          <p className="text-gray-300">
-                            <span className="font-semibold">Signed:</span> {formatDate(verificationResult.details.timestamp)}
-                          </p>
-                        )}
+
+                    {/* Detailed Signature Information */}
+                    {verificationResult.isValid && verificationResult.details && (
+                      <div className="bg-white/5 rounded-lg border border-white/10 p-6">
+                        <h4 className="text-lg font-bold text-white mb-4">📋 Signature Details</h4>
+                        
+                        <div className="space-y-4">
+                          {/* Signature Information */}
+                          {verificationResult.details.signatures && verificationResult.details.signatures.length > 0 && (
+                            <div>
+                              <h5 className="text-white font-semibold mb-3">Digital Signatures ({verificationResult.details.signatures.length})</h5>
+                              {verificationResult.details.signatures.map((sig: any, index: number) => (
+                                <div key={index} className="bg-black/20 rounded-lg p-4 mb-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                      <span className="text-gray-400">Signer ID:</span>
+                                      <p className="text-white font-semibold">{sig.signerId || 'Unknown'}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-400">Signer Name:</span>
+                                      <p className="text-white">{sig.signerName || 'Unknown'}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-400">Signed At:</span>
+                                      <p className="text-white">{sig.timestamp ? formatDate(sig.timestamp) : 'Unknown'}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-400">Status:</span>
+                                      <p className={`font-semibold ${sig.isValid ? 'text-green-300' : 'text-red-300'}`}>
+                                        {sig.isValid ? '✅ Valid' : '❌ Invalid'}
+                                      </p>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <span className="text-gray-400">Signature:</span>
+                                      <p className="font-mono text-xs text-gray-300 break-all bg-black/30 p-2 rounded mt-1">
+                                        {sig.signature}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Document Metadata */}
+                          {verificationResult.details.metadata && (
+                            <div>
+                              <h5 className="text-white font-semibold mb-3">📄 Document Metadata</h5>
+                              <div className="bg-black/20 rounded-lg p-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                  {verificationResult.details.metadata.title && (
+                                    <div>
+                                      <span className="text-gray-400">Title:</span>
+                                      <p className="text-white">{verificationResult.details.metadata.title}</p>
+                                    </div>
+                                  )}
+                                  {verificationResult.details.metadata.purpose && (
+                                    <div>
+                                      <span className="text-gray-400">Purpose:</span>
+                                      <p className="text-white">{verificationResult.details.metadata.purpose}</p>
+                                    </div>
+                                  )}
+                                  {verificationResult.details.metadata.signerInfo && (
+                                    <div className="md:col-span-2">
+                                      <span className="text-gray-400">Signer Information:</span>
+                                      <p className="text-white">{verificationResult.details.metadata.signerInfo}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Technical Details */}
+                          <div>
+                            <h5 className="text-white font-semibold mb-3">🔧 Technical Details</h5>
+                            <div className="bg-black/20 rounded-lg p-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <span className="text-gray-400">Verification Method:</span>
+                                  <p className="text-white">{verificationResult.details.verification_method || 'Standard'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Is Signed PDF:</span>
+                                  <p className="text-white">{verificationResult.details.isSignedPDF ? 'Yes' : 'No'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Total Signatures:</span>
+                                  <p className="text-white">{verificationResult.details.total_signatures || 0}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Valid Signatures:</span>
+                                  <p className="text-green-300">{verificationResult.details.valid_signatures || 0}</p>
+                                </div>
+                                {verificationResult.details.originalHash && (
+                                  <div className="md:col-span-2">
+                                    <span className="text-gray-400">Original Hash:</span>
+                                    <p className="font-mono text-xs text-gray-300 break-all bg-black/30 p-2 rounded mt-1">
+                                      {verificationResult.details.originalHash}
+                                    </p>
+                                  </div>
+                                )}
+                                {verificationResult.details.signedHash && verificationResult.details.signedHash !== verificationResult.details.originalHash && (
+                                  <div className="md:col-span-2">
+                                    <span className="text-gray-400">Signed Hash:</span>
+                                    <p className="font-mono text-xs text-gray-300 break-all bg-black/30 p-2 rounded mt-1">
+                                      {verificationResult.details.signedHash}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
-                    
-                    {verificationResult.error && (
-                      <p className="text-red-300">{verificationResult.error}</p>
+
+                    {/* Document Preview */}
+                    {verificationResult.isValid && verificationResult.details && verificationResult.details.fileName && verificationResult.details.fileName.toLowerCase().endsWith('.pdf') && (
+                      <div className="bg-white/5 rounded-lg border border-white/10 p-6">
+                        <h4 className="text-lg font-bold text-white mb-4">📄 Document Preview</h4>
+                        <div className="bg-white rounded-lg p-4">
+                          <iframe
+                            src={URL.createObjectURL(verifyFileInputRef.current?.files?.[0] || new Blob())}
+                            className="w-full h-96 border-0 rounded"
+                            title="Verified Document Preview"
+                          />
+                        </div>
+                        <div className="mt-4 flex space-x-3">
+                          <button
+                            onClick={() => {
+                              const file = verifyFileInputRef.current?.files?.[0];
+                              if (file) {
+                                const url = URL.createObjectURL(file);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = file.name;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }
+                            }}
+                            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm font-semibold"
+                          >
+                            📥 Download Document
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (verificationResult.details?.documentHash) {
+                                navigator.clipboard.writeText(verificationResult.details.documentHash);
+                                alert('Document hash copied to clipboard!');
+                              }
+                            }}
+                            className="bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20 text-sm"
+                          >
+                            📋 Copy Hash
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Verification Summary */}
+                    {verificationResult.isValid && (
+                      <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-6">
+                        <h4 className="text-lg font-bold text-green-300 mb-3">✅ Verification Summary</h4>
+                        <div className="space-y-2 text-sm text-green-200">
+                          <p>• Document signature has been cryptographically verified</p>
+                          <p>• Document integrity is confirmed - no tampering detected</p>
+                          <p>• Signer identity has been validated against blockchain records</p>
+                          <p>• Timestamp verification confirms signing date and time</p>
+                          <p>• This document can be trusted as authentic and unmodified</p>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

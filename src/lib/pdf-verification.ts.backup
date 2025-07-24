@@ -352,17 +352,9 @@ export async function verifyDocument(file: File, providedSignature?: string): Pr
     for (const dbSig of dbSignatures) {
       const isValid = await verifySignature(hashForVerification, dbSig.signature);
       
-      // Get the actual signer name/info - signer_id is the custom ID, not the name
-      let signerName = dbSig.signer_id; // Default to signer_id
-      
-      // Try to get more descriptive signer information from metadata or other sources
-      if (document.metadata && document.metadata.signerInfo) {
-        signerName = document.metadata.signerInfo;
-      }
-      
       verifiedSignatures.push({
         id: dbSig.id,
-        signerName: signerName,
+        signerName: dbSig.signer_id,
         signerId: dbSig.signer_id,
         signature: dbSig.signature,
         timestamp: dbSig.signed_at || dbSig.created_at,

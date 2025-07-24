@@ -346,7 +346,7 @@ export async function verifyDocument(file: File, providedSignature?: string): Pr
     const verifiedSignatures: SignatureInfo[] = [];
     let allValid = true;
     
-    // Use the original document hash for signature verification
+            // Use the original document hash for signature verification
     const hashForVerification = document.original_hash;
     
     for (const dbSig of dbSignatures) {
@@ -373,7 +373,7 @@ export async function verifyDocument(file: File, providedSignature?: string): Pr
         allValid = false;
       }
     }
-    
+
     return {
       isValid: allValid,
       isSignedPDF: false,

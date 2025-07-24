@@ -19,6 +19,27 @@ export async function POST(request: NextRequest) {
     // Use the new verification system
     const verificationResult = await verifyDocument(file, providedSignature || undefined);
 
+    // Get document metadata if available
+    let documentMetadata = null;
+    if (verificationResult.isValid && (verificationResult.originalHash || verificationResult.signedHash)) {
+      try {
+        const { supabase } = await import('@/lib/database');
+        const hashToLookup = verificationResult.originalHash || verificationResult.signedHash;
+        
+        const { data: documents } = await supabase
+          .from('documents')
+          .select('metadata')
+          .or(`original_hash.eq.${hashToLookup},signed_hash.eq.${hashToLookup}`)
+          .limit(1);
+
+        if (documents && documents.length > 0) {
+          documentMetadata = documents[0].metadata;
+        }
+      } catch (error) {
+        console.warn('Could not fetch document metadata:', error);
+      }
+    }
+
     // Transform result to match expected format
     const transformedResult = {
       isValid: verificationResult.isValid,
@@ -26,14 +47,20 @@ export async function POST(request: NextRequest) {
       fileName: verificationResult.documentInfo.fileName,
       fileSize: verificationResult.documentInfo.fileSize,
       details: {
-        isSignedPDF: verificationResult.isSignedPDF,
+        fileName: verificationResult.documentInfo.fileName,
+        documentHash: verificationResult.signedHash || verificationResult.originalHash,
+        fileSize: verificationResult.documentInfo.fileSize,
+        isSignedPDF: verificationResult.isSignedPDF || (verificationResult.signedHash !== verificationResult.originalHash),
         originalHash: verificationResult.originalHash,
         signedHash: verificationResult.signedHash,
         signatures: verificationResult.signatures,
         pageCount: verificationResult.documentInfo.pageCount,
         verification_method: verificationResult.isSignedPDF ? 'signed_pdf_verification' : 'original_document_verification',
         total_signatures: verificationResult.signatures.length,
-        valid_signatures: verificationResult.signatures.filter(sig => sig.isValid).length
+        valid_signatures: verificationResult.signatures.filter(sig => sig.isValid).length,
+        signerId: verificationResult.signatures.length > 0 ? verificationResult.signatures[0].signerId : undefined,
+        timestamp: verificationResult.signatures.length > 0 ? verificationResult.signatures[0].timestamp : undefined,
+        metadata: documentMetadata
       },
       error: verificationResult.error || null
     };
