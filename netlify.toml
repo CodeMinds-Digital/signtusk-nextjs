@@ -1,5 +1,5 @@
 [build]
-  command = "npm ci && npm run build:netlify"
+  command = "npm ci && npx next -v && (npx next dev & sleep 5 && kill $!) && npm run build:netlify"
   publish = ".next"
 
 [build.environment]
