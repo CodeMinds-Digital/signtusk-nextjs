@@ -184,7 +184,7 @@ export const DashboardRedesigned: React.FC = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <SecurityCard
               title="Single Signature"
               description="Sign documents with your digital identity"
@@ -213,19 +213,7 @@ export const DashboardRedesigned: React.FC = () => {
               </Button>
             </SecurityCard>
 
-            <SecurityCard
-              title="Verify Document"
-              description="Verify document authenticity"
-              icon={<SecurityIcons.Verified className="w-6 h-6 text-green-400" />}
-              securityLevel="maximum"
-              hover
-              className="cursor-pointer"
-              onClick={() => router.push('/verify')}
-            >
-              <Button variant="outline" fullWidth>
-                Verify Now
-              </Button>
-            </SecurityCard>
+
           </div>
 
           {/* Recent Documents */}

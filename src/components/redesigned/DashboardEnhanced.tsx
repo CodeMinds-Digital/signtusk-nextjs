@@ -291,7 +291,7 @@ export const DashboardEnhanced: React.FC = () => {
           </div>
 
           {/* Document Signing Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card variant="glass" padding="lg" hover className="cursor-pointer" onClick={() => router.push('/integrated-signing')}>
               <div className="text-center">
                 <div className="text-2xl mb-2">🔗</div>
@@ -324,13 +324,7 @@ export const DashboardEnhanced: React.FC = () => {
               </div>
             </Card>
 
-            <Card variant="glass" padding="lg" hover className="cursor-pointer" onClick={() => router.push('/verify')}>
-              <div className="text-center">
-                <div className="text-2xl mb-2">🔍</div>
-                <h3 className="text-lg font-semibold text-purple-300 mb-2">Verify Documents</h3>
-                <p className="text-neutral-400 text-sm">Verify Signatures</p>
-              </div>
-            </Card>
+
           </div>
 
           {/* Recent Documents */}
