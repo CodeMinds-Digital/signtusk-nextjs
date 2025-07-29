@@ -93,6 +93,24 @@ export const SettingsRedesigned: React.FC<SettingsRedesignedProps> = ({ onPageCh
     router.push('/logout');
   };
 
+  const handlePageChange = (page: string) => {
+    console.log('SettingsRedesigned handlePageChange called with:', page, 'onPageChange available:', !!onPageChange);
+
+    if (onPageChange) {
+      // Use the callback from parent component (dashboard sidebar navigation)
+      onPageChange(page);
+    } else {
+      // Fallback to router navigation if no callback (standalone settings page)
+      if (page === 'dashboard') {
+        router.push('/dashboard');
+      } else if (page === 'documents') {
+        router.push('/dashboard'); // Navigate back to dashboard with documents view
+      } else if (page === 'verify') {
+        router.push('/verify');
+      }
+    }
+  };
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -172,7 +190,7 @@ export const SettingsRedesigned: React.FC<SettingsRedesignedProps> = ({ onPageCh
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
       <Navigation
         currentPage={currentPage}
-        onPageChange={onPageChange || setCurrentPage}
+        onPageChange={handlePageChange}
         onLogout={handleLogout}
         userInfo={{
           customId: currentUser?.custom_id || 'Unknown',

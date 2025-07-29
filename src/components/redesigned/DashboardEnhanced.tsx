@@ -291,40 +291,52 @@ export const DashboardEnhanced: React.FC = () => {
           </div>
 
           {/* Document Signing Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card variant="glass" padding="lg" hover className="cursor-pointer" onClick={() => router.push('/integrated-signing')}>
-              <div className="text-center">
-                <div className="text-2xl mb-2">🔗</div>
-                <h3 className="text-lg font-semibold text-cyan-300 mb-2">Integrated Signing</h3>
-                <p className="text-neutral-400 text-sm">Supabase + sign_insert</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Card variant="glass" padding="lg">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <SecurityIcons.Signature className="w-6 h-6 text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Sign Document</h3>
+                  <p className="text-neutral-400 text-sm">Secure digital document signing</p>
+                </div>
               </div>
+              <Button
+                fullWidth
+                variant="primary"
+                onClick={() => {
+                  console.log('Sign Document button clicked, navigating to /sign-document');
+                  router.push('/sign-document');
+                }}
+                icon={<SecurityIcons.Signature className="w-4 h-4" />}
+              >
+                Start Signing
+              </Button>
             </Card>
 
-            <Card variant="glass" padding="lg" hover className="cursor-pointer" onClick={() => router.push('/enhanced-signing')}>
-              <div className="text-center">
-                <div className="text-2xl mb-2">🚀</div>
-                <h3 className="text-lg font-semibold text-green-300 mb-2">Enhanced Signing</h3>
-                <p className="text-neutral-400 text-sm">Model 1.1 with PDF Placement</p>
+            <Card variant="glass" padding="lg">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                  <SecurityIcons.Shield className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Multi-Signature</h3>
+                  <p className="text-neutral-400 text-sm">Collaborative document signing</p>
+                </div>
               </div>
+              <Button
+                fullWidth
+                variant="primary"
+                onClick={() => {
+                  console.log('Multi-Signature button clicked, navigating to /multi-signature');
+                  router.push('/multi-signature');
+                }}
+                icon={<SecurityIcons.Shield className="w-4 h-4" />}
+              >
+                Create Workflow
+              </Button>
             </Card>
-
-            <Card variant="glass" padding="lg" hover className="cursor-pointer" onClick={() => router.push('/sign-document')}>
-              <div className="text-center">
-                <div className="text-2xl mb-2">📝</div>
-                <h3 className="text-lg font-semibold text-green-300 mb-2">Sign Document</h3>
-                <p className="text-neutral-400 text-sm">Model 1.1: Single Signature</p>
-              </div>
-            </Card>
-
-            <Card variant="glass" padding="lg" hover className="cursor-pointer" onClick={() => router.push('/multi-signature')}>
-              <div className="text-center">
-                <div className="text-2xl mb-2">👥</div>
-                <h3 className="text-lg font-semibold text-blue-300 mb-2">Multi-Signature</h3>
-                <p className="text-neutral-400 text-sm">Model 1.2: Multi-Signature</p>
-              </div>
-            </Card>
-
-
           </div>
 
           {/* Recent Documents */}

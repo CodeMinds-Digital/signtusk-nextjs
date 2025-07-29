@@ -57,39 +57,44 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
   const loadDocumentFromStoredContext = async (context: { documentId: string; fileName: string }) => {
     setIsProcessing(true);
     try {
-      // Mock verification result for stored context
-      setVerificationResult({
-        isValid: true,
-        details: {
-          fileName: context.fileName,
-          fileSize: 1024000, // 1MB mock size
-          documentHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-          signatures: [{
-            signerId: 'user-123',
-            signerName: 'Document Signer',
-            signerAddress: `0x${Math.random().toString(16).substring(2, 10)}...${Math.random().toString(16).substring(2, 6)}`,
-            timestamp: new Date().toISOString(),
-            signedAt: new Date().toISOString(),
-            signature: `0x${Math.random().toString(16).substring(2, 34)}...${Math.random().toString(16).substring(2, 18)}`,
-            isValid: true,
-            verified: true
-          }],
-          metadata: {
-            title: context.fileName,
-            purpose: 'Document verification from dashboard popup',
-            signerInfo: 'Verified signer'
-          },
-          verification_method: 'Dashboard popup verification',
-          isSignedPDF: true,
-          total_signatures: 1,
-          valid_signatures: 1
-        }
+      // Fetch actual document data from API
+      const response = await fetch(`/api/documents/${context.documentId}`, {
+        method: 'GET',
+        credentials: 'include'
       });
+
+      if (response.ok) {
+        const documentData = await response.json();
+
+        // Use real document data for verification display
+        setVerificationResult({
+          isValid: documentData.status === 'signed' || documentData.status === 'verified',
+          details: {
+            fileName: documentData.fileName || context.fileName,
+            fileSize: documentData.fileSize || 0,
+            documentHash: documentData.documentHash || documentData.originalHash || 'N/A',
+            signatures: documentData.signatures || [],
+            metadata: documentData.metadata || {
+              title: documentData.title || context.fileName,
+              purpose: documentData.purpose || 'Document verification',
+              signerInfo: documentData.signerInfo || 'Unknown'
+            },
+            verification_method: 'Database lookup verification',
+            isSignedPDF: documentData.status === 'signed',
+            total_signatures: documentData.signatureCount || (documentData.signatures ? documentData.signatures.length : 0),
+            valid_signatures: documentData.signatureCount || (documentData.signatures ? documentData.signatures.filter((s: any) => s.isValid !== false).length : 0),
+            originalHash: documentData.originalHash,
+            signedHash: documentData.signedHash || documentData.documentHash
+          }
+        });
+      } else {
+        throw new Error('Document not found or access denied');
+      }
     } catch (error) {
       console.error('Error loading document context:', error);
       setVerificationResult({
         isValid: false,
-        error: 'Failed to load document context from popup. Please try uploading the document manually.'
+        error: 'Failed to load document information. The document may not exist or you may not have access to it.'
       });
     } finally {
       setIsProcessing(false);
@@ -125,34 +130,7 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
           }
         });
       } else {
-        // Fallback to mock verification result
-        setVerificationResult({
-          isValid: true,
-          details: {
-            fileName: decodeURIComponent(fileName || ''),
-            fileSize: 1024000, // 1MB mock size
-            documentHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-            signatures: [{
-              signerId: 'user-123',
-              signerName: 'Document Signer',
-              signerAddress: `0x${Math.random().toString(16).substr(2, 8)}...${Math.random().toString(16).substr(2, 4)}`,
-              timestamp: new Date().toISOString(),
-              signedAt: new Date().toISOString(),
-              signature: `0x${Math.random().toString(16).substr(2, 32)}...${Math.random().toString(16).substr(2, 16)}`,
-              isValid: true,
-              verified: true
-            }],
-            metadata: {
-              title: decodeURIComponent(fileName || ''),
-              purpose: 'Document verification from dashboard',
-              signerInfo: 'Verified signer'
-            },
-            verification_method: 'Dashboard context verification',
-            isSignedPDF: true,
-            total_signatures: 1,
-            valid_signatures: 1
-          }
-        });
+        throw new Error('Document not found or access denied');
       }
     } catch (error) {
       console.error('Error loading document context:', error);
@@ -170,12 +148,20 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
   };
 
   const handlePageChange = (page: string) => {
-    if (page === 'dashboard') {
-      router.push('/dashboard');
-    } else if (page === 'documents') {
-      router.push('/dashboard'); // Navigate back to dashboard with documents view
-    } else if (page === 'settings') {
-      router.push('/dashboard'); // Navigate back to dashboard
+    console.log('VerifyRedesigned handlePageChange called with:', page, 'onPageChange available:', !!onPageChange);
+
+    if (onPageChange) {
+      // Use the callback from parent component (dashboard sidebar navigation)
+      onPageChange(page);
+    } else {
+      // Fallback to router navigation if no callback (standalone verify page)
+      if (page === 'dashboard') {
+        router.push('/dashboard');
+      } else if (page === 'documents') {
+        router.push('/dashboard'); // Navigate back to dashboard with documents view
+      } else if (page === 'settings') {
+        router.push('/dashboard'); // Navigate back to dashboard
+      }
     }
   };
 

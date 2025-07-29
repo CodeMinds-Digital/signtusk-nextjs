@@ -844,10 +844,51 @@ export default function Dashboard() {
                 {/* Detailed Information (shown when showDetailed is true) */}
                 {verifyModal.showDetailed && (
                   <>
+                    {/* Detailed Signature Information */}
+                    {verifyModal.verificationData.details?.signatures && verifyModal.verificationData.details.signatures.length > 0 && (
+                      <div className="bg-white/5 rounded-lg border border-white/10 p-4">
+                        <h5 className="text-white font-semibold mb-3">📋 Signature Details</h5>
+                        <div className="space-y-4">
+                          {verifyModal.verificationData.details.signatures.map((sig: any, index: number) => (
+                            <div key={index} className="bg-black/20 rounded-lg p-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <span className="text-gray-400">Signer ID:</span>
+                                  <p className="text-white font-semibold">{sig.signerId || 'Unknown'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Signer Name:</span>
+                                  <p className="text-white">{sig.signerName || 'Unknown'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Signing Timestamp:</span>
+                                  <p className="text-white">{sig.timestamp ? new Date(sig.timestamp).toLocaleString() : 'Unknown time'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Signature Validity:</span>
+                                  <span className={`px-2 py-1 rounded text-xs ${sig.isValid ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                                    {sig.isValid ? '✅ Valid' : '❌ Invalid'}
+                                  </span>
+                                </div>
+                                {sig.signature && (
+                                  <div className="md:col-span-2">
+                                    <span className="text-gray-400">Full Cryptographic Signature:</span>
+                                    <p className="font-mono text-xs text-gray-300 break-all bg-black/30 p-2 rounded mt-1">
+                                      {sig.signature}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Document Metadata */}
                     {verifyModal.verificationData.details?.metadata && (
                       <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-                        <h5 className="text-white font-semibold mb-3">📋 Document Metadata</h5>
+                        <h5 className="text-white font-semibold mb-3">📄 Document Metadata</h5>
                         <div className="space-y-2 text-sm">
                           {verifyModal.verificationData.details.metadata.title && (
                             <div className="flex justify-between">
@@ -863,7 +904,7 @@ export default function Dashboard() {
                           )}
                           {verifyModal.verificationData.details.metadata.signerInfo && (
                             <div className="flex justify-between">
-                              <span className="text-gray-400">Signer Info:</span>
+                              <span className="text-gray-400">Signer Information:</span>
                               <span className="text-white">{verifyModal.verificationData.details.metadata.signerInfo}</span>
                             </div>
                           )}
@@ -906,6 +947,41 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    {/* Document Preview */}
+                    {verifyModal.document && verifyModal.document.signedUrl && (
+                      <div className="bg-white/5 rounded-lg border border-white/10 p-4">
+                        <h5 className="text-white font-semibold mb-3">📄 Document Preview</h5>
+                        <div className="bg-white rounded-lg p-4">
+                          <iframe
+                            src={verifyModal.document.signedUrl}
+                            className="w-full h-96 border-0 rounded"
+                            title="Verified Document Preview"
+                          />
+                        </div>
+                        <div className="mt-4 flex space-x-3">
+                          <a
+                            href={verifyModal.document.signedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm font-semibold"
+                          >
+                            📥 Download Document
+                          </a>
+                          {verifyModal.verificationData.details?.documentHash && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(verifyModal.verificationData.details.documentHash);
+                                // You could add a toast notification here
+                              }}
+                              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-all duration-200 text-sm font-semibold"
+                            >
+                              📋 Copy Hash
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Audit Trail */}
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <h5 className="text-white font-semibold mb-3">📊 Audit Trail</h5>
@@ -922,6 +998,20 @@ export default function Dashboard() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Verification Summary */}
+                    {verifyModal.verificationData.isValid && (
+                      <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-6">
+                        <h4 className="text-lg font-bold text-green-300 mb-3">✅ Verification Summary</h4>
+                        <div className="space-y-2 text-sm text-green-200">
+                          <p>• Document signature has been cryptographically verified</p>
+                          <p>• Document integrity is confirmed - no tampering detected</p>
+                          <p>• Signer identity has been validated against blockchain records</p>
+                          <p>• Timestamp verification confirms signing date and time</p>
+                          <p>• This document can be trusted as authentic and unmodified</p>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 

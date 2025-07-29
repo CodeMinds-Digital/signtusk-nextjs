@@ -185,35 +185,51 @@ export const DashboardRedesigned: React.FC = () => {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <SecurityCard
-              title="Single Signature"
-              description="Sign documents with your digital identity"
-              icon={<SecurityIcons.Signature className="w-6 h-6 text-primary-400" />}
-              securityLevel="enhanced"
-              hover
-              className="cursor-pointer"
-              onClick={() => router.push('/sign-document')}
-            >
-              <Button variant="outline" fullWidth>
+            <Card variant="glass" padding="lg">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <SecurityIcons.Signature className="w-6 h-6 text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Sign Document</h3>
+                  <p className="text-neutral-400 text-sm">Secure digital document signing</p>
+                </div>
+              </div>
+              <Button
+                fullWidth
+                variant="primary"
+                onClick={() => {
+                  console.log('Sign Document button clicked (DashboardRedesigned), navigating to /sign-document');
+                  router.push('/sign-document');
+                }}
+                icon={<SecurityIcons.Signature className="w-4 h-4" />}
+              >
                 Start Signing
               </Button>
-            </SecurityCard>
+            </Card>
 
-            <SecurityCard
-              title="Multi-Signature"
-              description="Collaborate with multiple signers"
-              icon={<SecurityIcons.Shield className="w-6 h-6 text-blue-400" />}
-              securityLevel="enhanced"
-              hover
-              className="cursor-pointer"
-              onClick={() => router.push('/multi-signature')}
-            >
-              <Button variant="outline" fullWidth>
+            <Card variant="glass" padding="lg">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                  <SecurityIcons.Shield className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Multi-Signature</h3>
+                  <p className="text-neutral-400 text-sm">Collaborative document signing</p>
+                </div>
+              </div>
+              <Button
+                fullWidth
+                variant="primary"
+                onClick={() => {
+                  console.log('Multi-Signature button clicked (DashboardRedesigned), navigating to /multi-signature');
+                  router.push('/multi-signature');
+                }}
+                icon={<SecurityIcons.Shield className="w-4 h-4" />}
+              >
                 Create Workflow
               </Button>
-            </SecurityCard>
-
-
+            </Card>
           </div>
 
           {/* Recent Documents */}

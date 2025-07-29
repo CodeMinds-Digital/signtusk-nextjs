@@ -76,6 +76,24 @@ export const DocumentsRedesigned: React.FC<DocumentsRedesignedProps> = ({ onPage
     router.push('/logout');
   };
 
+  const handlePageChange = (page: string) => {
+    console.log('DocumentsRedesigned handlePageChange called with:', page, 'onPageChange available:', !!onPageChange);
+
+    if (onPageChange) {
+      // Use the callback from parent component (dashboard sidebar navigation)
+      onPageChange(page);
+    } else {
+      // Fallback to router navigation if no callback (standalone documents page)
+      if (page === 'dashboard') {
+        router.push('/dashboard');
+      } else if (page === 'verify') {
+        router.push('/verify');
+      } else if (page === 'settings') {
+        router.push('/dashboard'); // Navigate back to dashboard
+      }
+    }
+  };
+
   const handleViewDocument = (document: Document) => {
     // Navigate to document detail view
     router.push(`/documents/${document.id}`);
@@ -154,7 +172,7 @@ export const DocumentsRedesigned: React.FC<DocumentsRedesignedProps> = ({ onPage
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
       <Navigation
         currentPage={currentPage}
-        onPageChange={onPageChange || setCurrentPage}
+        onPageChange={handlePageChange}
         onLogout={handleLogout}
         userInfo={{
           customId: currentUser?.custom_id || 'Unknown',

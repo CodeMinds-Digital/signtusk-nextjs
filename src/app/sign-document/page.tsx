@@ -1,5 +1,5 @@
-import DocumentSigning from '@/components/DocumentSigning';
+import { SignDocumentRedesigned } from '@/components/redesigned/SignDocumentRedesigned';
 
 export default function SignDocumentPage() {
-  return <DocumentSigning />;
+  return <SignDocumentRedesigned />;
 }
