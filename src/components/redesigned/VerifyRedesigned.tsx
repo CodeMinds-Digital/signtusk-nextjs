@@ -67,8 +67,20 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
         const documentData = await response.json();
 
         // Use real document data for verification display
+        const hasSignatures = documentData.signatures && documentData.signatures.length > 0;
+        const isSignedDocument = documentData.status === 'signed' || documentData.status === 'completed';
+        const isValidDocument = isSignedDocument && hasSignatures;
+
+        console.log('Document verification data:', {
+          status: documentData.status,
+          hasSignatures,
+          signatureCount: documentData.signatureCount,
+          signatures: documentData.signatures,
+          isValidDocument
+        });
+
         setVerificationResult({
-          isValid: documentData.status === 'signed' || documentData.status === 'verified',
+          isValid: isValidDocument,
           details: {
             fileName: documentData.fileName || context.fileName,
             fileSize: documentData.fileSize || 0,
@@ -80,7 +92,7 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
               signerInfo: documentData.signerInfo || 'Unknown'
             },
             verification_method: 'Database lookup verification',
-            isSignedPDF: documentData.status === 'signed',
+            isSignedPDF: isSignedDocument,
             total_signatures: documentData.signatureCount || (documentData.signatures ? documentData.signatures.length : 0),
             valid_signatures: documentData.signatureCount || (documentData.signatures ? documentData.signatures.filter((s: any) => s.isValid !== false).length : 0),
             originalHash: documentData.originalHash,
@@ -114,19 +126,38 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
 
       if (response.ok) {
         const documentData = await response.json();
-        // Simulate verification with document data
+
+        // Use real document data for verification display
+        const hasSignatures = documentData.signatures && documentData.signatures.length > 0;
+        const isSignedDocument = documentData.status === 'signed' || documentData.status === 'completed';
+        const isValidDocument = isSignedDocument && hasSignatures;
+
+        console.log('Document verification data (from URL context):', {
+          status: documentData.status,
+          hasSignatures,
+          signatureCount: documentData.signatureCount,
+          signatures: documentData.signatures,
+          isValidDocument
+        });
+
         setVerificationResult({
-          isValid: true,
+          isValid: isValidDocument,
           details: {
-            fileName: decodeURIComponent(fileName || ''),
+            fileName: documentData.fileName || decodeURIComponent(fileName || ''),
             fileSize: documentData.fileSize || 0,
-            documentHash: documentData.documentHash || 'N/A',
+            documentHash: documentData.documentHash || documentData.originalHash || 'N/A',
             signatures: documentData.signatures || [],
-            metadata: documentData.metadata || {},
-            verification_method: 'Context-based verification',
-            isSignedPDF: true,
-            total_signatures: documentData.signatureCount || 0,
-            valid_signatures: documentData.signatureCount || 0
+            metadata: documentData.metadata || {
+              title: documentData.title || decodeURIComponent(fileName || ''),
+              purpose: documentData.purpose || 'Document verification',
+              signerInfo: documentData.signerInfo || 'Unknown'
+            },
+            verification_method: 'Database lookup verification',
+            isSignedPDF: isSignedDocument,
+            total_signatures: documentData.signatureCount || (documentData.signatures ? documentData.signatures.length : 0),
+            valid_signatures: documentData.signatureCount || (documentData.signatures ? documentData.signatures.filter((s: any) => s.isValid !== false).length : 0),
+            originalHash: documentData.originalHash,
+            signedHash: documentData.signedHash || documentData.documentHash
           }
         });
       } else {
