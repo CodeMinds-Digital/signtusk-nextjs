@@ -8,7 +8,7 @@ const WALLET_STORAGE_KEY = 'encrypted_wallet';
  */
 export function storeEncryptedWallet(encryptedWallet: EncryptedWallet): void {
   if (typeof window === 'undefined') return;
-  
+
   try {
     localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(encryptedWallet));
   } catch {
@@ -21,7 +21,7 @@ export function storeEncryptedWallet(encryptedWallet: EncryptedWallet): void {
  */
 export function getEncryptedWallet(): EncryptedWallet | null {
   if (typeof window === 'undefined') return null;
-  
+
   try {
     const stored = localStorage.getItem(WALLET_STORAGE_KEY);
     return stored ? JSON.parse(stored) : null;
@@ -54,7 +54,26 @@ export function removeStoredWallet(): void {
 /**
  * Create wallet in Supabase database
  */
-export async function createWalletInDatabase(walletAddress: string, encryptedPrivateKey: string): Promise<void> {
+export async function createWalletInDatabase(
+  walletAddress: string,
+  encryptedPrivateKey: string,
+  customId?: string,
+  encryptedMnemonic?: string,
+  salt?: string,
+  displayName?: string,
+  email?: string
+): Promise<void> {
+  console.log('Creating wallet in database:', {
+    walletAddress,
+    customId,
+    customIdLength: customId?.length,
+    hasEncryptedPrivateKey: !!encryptedPrivateKey,
+    hasEncryptedMnemonic: !!encryptedMnemonic,
+    hasSalt: !!salt,
+    displayName,
+    email
+  });
+
   const response = await fetch('/api/wallet/create', {
     method: 'POST',
     headers: {
@@ -62,14 +81,25 @@ export async function createWalletInDatabase(walletAddress: string, encryptedPri
     },
     body: JSON.stringify({
       wallet_address: walletAddress,
-      encrypted_private_key: encryptedPrivateKey
+      encrypted_private_key: encryptedPrivateKey,
+      custom_id: customId,
+      encrypted_mnemonic: encryptedMnemonic,
+      salt: salt,
+      display_name: displayName,
+      email: email
     })
   });
 
+  console.log('Database creation response status:', response.status);
+
   if (!response.ok) {
     const error = await response.json();
+    console.error('Database creation error:', error);
     throw new Error(error.error || 'Failed to create wallet');
   }
+
+  const result = await response.json();
+  console.log('Database creation success:', result);
 }
 
 /**
@@ -131,9 +161,9 @@ export async function getCurrentUser(): Promise<{ wallet_address: string; custom
     }
 
     const data = await response.json();
-    return data.success ? { 
+    return data.success ? {
       wallet_address: data.wallet_address,
-      custom_id: data.custom_id 
+      custom_id: data.custom_id
     } : null;
   } catch {
     return null;

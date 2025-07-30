@@ -7,6 +7,9 @@ import { getEncryptedWallet, getStoredWalletList, setCurrentWalletAddress, remov
 import { getAuthChallenge, verifySignature } from '@/lib/storage';
 import { useWallet } from '@/contexts/WalletContext';
 import { Wallet } from 'ethers';
+import { retrieveSecureWallet, getWalletSecurityInfo, initializeSecurityManager } from '@/lib/security-manager';
+import { listCombinedSecureWallets } from '@/lib/combined-storage';
+import SecurityUpgrade from './SecurityUpgrade';
 
 type LoginStep = 'wallet-select' | 'password' | 'mnemonic-verify' | 'complete';
 
@@ -17,48 +20,82 @@ export default function LoginFlow() {
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string>('');
   const [password, setPassword] = useState('');
   const [walletData, setWalletData] = useState<WalletData | null>(null);
-  const [verificationWords, setVerificationWords] = useState<Array<{index: number, word: string}>>([]);
+  const [verificationWords, setVerificationWords] = useState<Array<{ index: number, word: string }>>([]);
   const [userVerificationInputs, setUserVerificationInputs] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [availableWallets, setAvailableWallets] = useState<Array<{ address: string; customId: string }>>([]);
+  const [availableWallets, setAvailableWallets] = useState<Array<{ address: string; customId: string; securityLevel?: string }>>([]);
+  const [showSecurityUpgrade, setShowSecurityUpgrade] = useState(false);
+  const [currentWalletSecurity, setCurrentWalletSecurity] = useState<any>(null);
 
   // Initialize available wallets on component mount
   useEffect(() => {
-    const wallets = getStoredWalletList();
-    setAvailableWallets(wallets);
-    
+    initializeSecurityManager();
+    loadWalletsWithSecurityInfo();
+  }, [router]);
+
+  const loadWalletsWithSecurityInfo = async () => {
+    const standardWallets = getStoredWalletList();
+    const combinedWallets = listCombinedSecureWallets();
+
+    // Combine all wallet types with security level information
+    const allWallets = await Promise.all([
+      ...standardWallets.map(async w => {
+        const securityInfo = await getWalletSecurityInfo(w.address);
+        return {
+          address: w.address,
+          customId: w.customId,
+          securityLevel: securityInfo?.level || 'standard'
+        };
+      }),
+      ...combinedWallets.map(async w => {
+        const securityInfo = await getWalletSecurityInfo(w.address);
+        return {
+          address: w.address,
+          customId: w.customId,
+          securityLevel: securityInfo?.level || 'maximum'
+        };
+      })
+    ]);
+
+    setAvailableWallets(allWallets);
+
     // If only one wallet, skip selection step
-    if (wallets.length === 1) {
-      setSelectedWalletAddress(wallets[0].address);
+    if (allWallets.length === 1) {
+      setSelectedWalletAddress(allWallets[0].address);
       setCurrentStep('password');
-    } else if (wallets.length === 0) {
+    } else if (allWallets.length === 0) {
       // No wallets found, redirect to import
       router.push('/import');
     }
-  }, [router]);
+  };
 
-  const handleWalletSelect = (address: string) => {
+  const handleWalletSelect = async (address: string) => {
     setSelectedWalletAddress(address);
     setCurrentWalletAddress(address);
+
+    // Load security information for the selected wallet
+    const securityInfo = await getWalletSecurityInfo(address);
+    setCurrentWalletSecurity(securityInfo);
+
     setCurrentStep('password');
   };
 
   const handleDeleteWallet = async (address: string, customId: string, event: React.MouseEvent) => {
     // Prevent the wallet selection when clicking delete
     event.stopPropagation();
-    
+
     const confirmMessage = `Are you sure you want to delete the signing identity "${customId}"?\n\nThis action cannot be undone. Make sure you have your recovery phrase saved if you want to restore this identity later.`;
-    
+
     if (window.confirm(confirmMessage)) {
       try {
         // Remove wallet from local storage
         removeStoredWallet(address);
-        
+
         // Update available wallets list
         const updatedWallets = getStoredWalletList();
         setAvailableWallets(updatedWallets);
-        
+
         // If no wallets left, redirect to import
         if (updatedWallets.length === 0) {
           router.push('/import');
@@ -67,7 +104,7 @@ export default function LoginFlow() {
           setSelectedWalletAddress(updatedWallets[0].address);
           setCurrentStep('password');
         }
-        
+
         // Show success message briefly
         alert(`Identity "${customId}" has been deleted successfully.`);
       } catch (error) {
@@ -88,15 +125,8 @@ export default function LoginFlow() {
 
     setIsLoading(true);
     try {
-      // Get encrypted wallet from storage for the selected address
-      const encryptedWallet = getEncryptedWallet(selectedWalletAddress);
-      if (!encryptedWallet) {
-        setError('Selected wallet not found. Please try selecting a different identity.');
-        return;
-      }
-
-      // Decrypt wallet
-      const decryptedWallet = decryptWallet(encryptedWallet, password);
+      // Try to retrieve wallet using the new security manager (supports all security levels)
+      const decryptedWallet = await retrieveSecureWallet(selectedWalletAddress, password);
       setWalletData(decryptedWallet);
 
       // Generate random words for verification
@@ -132,7 +162,7 @@ export default function LoginFlow() {
     try {
       // Get fresh challenge and sign it
       const nonce = await getAuthChallenge(walletData.address);
-      
+
       // Create wallet instance for signing
       const wallet = new Wallet(walletData.privateKey);
       const signature = await wallet.signMessage(nonce);
@@ -145,7 +175,7 @@ export default function LoginFlow() {
 
       // Set wallet in context
       setWallet(walletData);
-      
+
       setCurrentStep('complete');
     } catch (error) {
       console.error('Authentication error:', error);
@@ -158,7 +188,7 @@ export default function LoginFlow() {
   const renderWalletSelect = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Select Identity to Login</h2>
-      
+
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
         <p className="text-blue-300 text-sm">
           🔐 Choose which signing identity you want to access. Hover over an identity to see the delete option.
@@ -177,8 +207,20 @@ export default function LoginFlow() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1 pr-4">
-                  <p className="text-white font-semibold">{wallet.customId}</p>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <p className="text-white font-semibold">{wallet.customId}</p>
+                    <span className={`text-xs px-2 py-1 rounded-full ${wallet.securityLevel === 'maximum' ? 'bg-green-500/20 text-green-400' :
+                      wallet.securityLevel === 'enhanced' ? 'bg-blue-500/20 text-blue-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                      {wallet.securityLevel === 'maximum' ? 'Max Security' :
+                        wallet.securityLevel === 'enhanced' ? 'Enhanced' : 'Standard'}
+                    </span>
+                  </div>
                   <p className="text-gray-400 text-sm font-mono">{getChecksumAddress(wallet.address)}</p>
+                  {wallet.securityLevel === 'standard' && (
+                    <p className="text-orange-400 text-xs mt-1">⚠️ Security upgrade available</p>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
@@ -215,7 +257,47 @@ export default function LoginFlow() {
   const renderPasswordStep = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Welcome Back to SignTusk</h2>
-      
+
+      {/* Security Level Information */}
+      {currentWalletSecurity && (
+        <div className={`mb-6 p-4 rounded-lg border ${currentWalletSecurity.level === 'maximum' ? 'bg-green-500/10 border-green-500/30' :
+          currentWalletSecurity.level === 'enhanced' ? 'bg-blue-500/10 border-blue-500/30' :
+            'bg-yellow-500/10 border-yellow-500/30'
+          }`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-300">Security Level</span>
+            <span className={`text-sm font-semibold ${currentWalletSecurity.level === 'maximum' ? 'text-green-400' :
+              currentWalletSecurity.level === 'enhanced' ? 'text-blue-400' :
+                'text-yellow-400'
+              }`}>
+              {currentWalletSecurity.level === 'maximum' ? 'Maximum (v3)' :
+                currentWalletSecurity.level === 'enhanced' ? 'Enhanced (v2)' : 'Standard (v1)'}
+            </span>
+          </div>
+
+          {currentWalletSecurity.level === 'standard' && (
+            <div className="mt-3 pt-3 border-t border-yellow-500/30">
+              <p className="text-yellow-300 text-sm mb-2">
+                ⚠️ Your wallet is using basic security. Upgrade to Maximum security for enhanced protection.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowSecurityUpgrade(true)}
+                className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded transition-colors"
+              >
+                Upgrade After Login
+              </button>
+            </div>
+          )}
+
+          {currentWalletSecurity.level === 'maximum' && (
+            <p className="text-green-300 text-sm">
+              ✅ Maximum security with encryption + steganography protection
+            </p>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handlePasswordSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2 text-gray-300">Password</label>
@@ -278,7 +360,7 @@ export default function LoginFlow() {
   const renderMnemonicVerify = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Security Verification</h2>
-      
+
       <p className="text-gray-300 mb-6 text-center">
         For your security, please enter the following words from your recovery phrase to complete login.
       </p>
@@ -340,7 +422,7 @@ export default function LoginFlow() {
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 text-center">
       <div className="text-green-400 text-6xl mb-4">✅</div>
       <h2 className="text-2xl font-bold mb-4 text-white">Welcome Back!</h2>
-      
+
       <div className="bg-white/5 p-4 rounded-lg mb-6 border border-white/10">
         <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
         <p className="font-mono text-lg text-purple-400 mb-3">{walletData?.customId}</p>
@@ -356,7 +438,7 @@ export default function LoginFlow() {
         onClick={async () => {
           // Wait a moment to ensure cookie is properly set
           await new Promise(resolve => setTimeout(resolve, 500));
-          
+
           // Use Next.js router instead of window.location.href to preserve cookies
           router.push('/dashboard');
         }}
@@ -366,6 +448,22 @@ export default function LoginFlow() {
       </button>
     </div>
   );
+
+  // Show security upgrade if requested
+  if (showSecurityUpgrade && selectedWalletAddress) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12">
+        <SecurityUpgrade
+          walletAddress={selectedWalletAddress}
+          onUpgradeComplete={() => {
+            setShowSecurityUpgrade(false);
+            loadWalletsWithSecurityInfo(); // Refresh wallet list
+          }}
+          onCancel={() => setShowSecurityUpgrade(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12">

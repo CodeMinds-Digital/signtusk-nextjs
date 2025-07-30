@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, SecurityCard } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { SecurityIcons, SecurityLevelBadge, LoadingSpinner } from '../ui/DesignSystem';
-import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic, getChecksumAddress, WalletData } from '@/lib/wallet';
+import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic, getChecksumAddress, WalletData, generateCustomId } from '@/lib/wallet';
 import { storeEncryptedWallet } from '@/lib/multi-wallet-storage';
 import { getAuthChallenge, verifySignature } from '@/lib/storage';
 import { Wallet } from 'ethers';
@@ -94,6 +94,14 @@ export const ImportRedesigned: React.FC = () => {
   const [error, setError] = useState('');
   const [importedWallet, setImportedWallet] = useState<WalletData | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Generate Custom ID when component loads for private key import
+  useEffect(() => {
+    if (!customId && currentStep === 'private-key') {
+      const generatedId = generateCustomId();
+      setCustomId(generatedId);
+    }
+  }, [customId, currentStep]);
 
   const validatePassword = (password: string): boolean => {
     return password.length >= 8 &&
@@ -505,15 +513,23 @@ export const ImportRedesigned: React.FC = () => {
                 securityLevel="maximum"
               />
 
-              <FormInput
-                label="Custom Identity ID"
-                value={customId}
-                onChange={setCustomId}
-                placeholder="e.g., SIGN-001"
-                required
-                icon={<SecurityIcons.Key className="w-5 h-5 text-neutral-400" />}
-                securityLevel="maximum"
-              />
+              {/* Auto-generated Custom Identity ID Display */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-neutral-300">
+                  Custom Identity ID*
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <SecurityIcons.Key className="w-5 h-5 text-neutral-400" />
+                  </div>
+                  <div className="w-full pl-10 pr-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white font-mono text-lg tracking-wider">
+                    {customId || 'Generating...'}
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  Auto-generated unique 18-character identifier
+                </p>
+              </div>
 
               <FormInput
                 label="New Password"

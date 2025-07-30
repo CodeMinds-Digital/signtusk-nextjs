@@ -7,9 +7,11 @@ import { Button } from '../ui/Button';
 import { SecurityIcons, SecurityLevelBadge, LoadingSpinner } from '../ui/DesignSystem';
 import { decryptWallet, getRandomWordsForVerification, verifyMnemonicWords, getChecksumAddress, WalletData } from '@/lib/wallet';
 import { getEncryptedWallet, getStoredWalletList, setCurrentWalletAddress, removeStoredWallet } from '@/lib/multi-wallet-storage';
+import { generateWalletWithUniqueId, generateCustomId } from '@/lib/wallet';
 import { getAuthChallenge, verifySignature } from '@/lib/storage';
 import { useWallet } from '@/contexts/WalletContext';
 import { Wallet } from 'ethers';
+import { createSecureWallet } from '@/lib/security-manager';
 
 interface FormInputProps {
   label: string;
@@ -99,6 +101,33 @@ export const LoginRedesigned: React.FC<LoginRedesignedProps> = ({ onSuccess }) =
   const handleWalletSelect = (address: string) => {
     setSelectedWalletAddress(address);
     setCurrentStep('password');
+  };
+
+  const handleDeleteWallet = async (address: string, customId: string, event: React.MouseEvent) => {
+    // Prevent the wallet selection when clicking delete
+    event.stopPropagation();
+
+    const confirmMessage = `Are you sure you want to delete the signing identity "${customId}"?\n\nThis action cannot be undone. Make sure you have your recovery phrase saved if you want to restore this identity later.`;
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        // Remove wallet from local storage
+        removeStoredWallet(address);
+
+        // Update available wallets list
+        const updatedWallets = getStoredWalletList();
+        setStoredWallets(updatedWallets);
+
+        // If no wallets left, they'll see the "no wallets" message
+        // If only one wallet left, user can select it manually
+
+        // Show success message briefly
+        alert(`Identity "${customId}" has been deleted successfully.`);
+      } catch (error) {
+        console.error('Failed to delete wallet:', error);
+        alert('Failed to delete identity. Please try again.');
+      }
+    }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -195,7 +224,13 @@ export const LoginRedesigned: React.FC<LoginRedesignedProps> = ({ onSuccess }) =
         {/* Wallet Selection */}
         {currentStep === 'wallet-select' && (
           <Card variant="glass" padding="lg">
-            <h2 className="text-xl font-semibold text-white mb-6">Select Your Identity</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">Select Your Identity</h2>
+
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
+              <p className="text-blue-300 text-sm">
+                🔐 Choose which signing identity you want to access. Hover over an identity to see the delete option.
+              </p>
+            </div>
 
             {storedWallets.length === 0 ? (
               <div className="text-center py-8">
@@ -224,19 +259,34 @@ export const LoginRedesigned: React.FC<LoginRedesignedProps> = ({ onSuccess }) =
               <>
                 <div className="space-y-4">
                   {storedWallets.map((wallet) => (
-                    <button
+                    <div
                       key={wallet.address}
-                      onClick={() => handleWalletSelect(wallet.address)}
-                      className="w-full p-4 rounded-xl border border-neutral-600 hover:border-primary-500 bg-neutral-800/30 hover:bg-neutral-800/50 transition-all duration-200 text-left"
+                      className="relative group"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-white">{wallet.customId}</p>
-                          <p className="text-sm text-neutral-400">{getChecksumAddress(wallet.address)}</p>
+                      <button
+                        onClick={() => handleWalletSelect(wallet.address)}
+                        className="w-full p-4 rounded-xl border border-neutral-600 hover:border-primary-500 bg-neutral-800/30 hover:bg-neutral-800/50 transition-all duration-200 text-left"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 pr-4">
+                            <p className="font-semibold text-white">{wallet.customId}</p>
+                            <p className="text-sm text-neutral-400">{getChecksumAddress(wallet.address)}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => handleDeleteWallet(wallet.address, wallet.customId, e)}
+                              className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+                              title={`Delete ${wallet.customId}`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                            <SecurityIcons.Shield className="w-5 h-5 text-primary-400" />
+                          </div>
                         </div>
-                        <SecurityIcons.Shield className="w-5 h-5 text-primary-400" />
-                      </div>
-                    </button>
+                      </button>
+                    </div>
                   ))}
                 </div>
 
@@ -418,6 +468,7 @@ interface SignupRedesignedProps {
 }
 
 export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess }) => {
+  const { setWallet } = useWallet();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<'security' | 'identity' | 'backup' | 'complete'>('security');
   const [selectedSecurity, setSelectedSecurity] = useState<'standard' | 'enhanced' | 'maximum'>('enhanced');
@@ -425,8 +476,17 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [mnemonicWords, setMnemonicWords] = useState<string[]>([]);
+  const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Generate Custom ID when component loads
+  useEffect(() => {
+    if (!customId) {
+      const generatedId = generateCustomId();
+      setCustomId(generatedId);
+    }
+  }, [customId]);
 
   const handleSecuritySelect = (level: 'standard' | 'enhanced' | 'maximum') => {
     setSelectedSecurity(level);
@@ -446,27 +506,94 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
 
     setIsLoading(true);
     try {
-      // Simulate wallet generation
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const mockMnemonic = [
-        'abandon', 'ability', 'able', 'about', 'above', 'absent',
-        'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident'
-      ];
-      setMnemonicWords(mockMnemonic);
+      // Generate real wallet with unique custom ID
+      const newWallet = await generateWalletWithUniqueId(12);
+      setWalletData(newWallet);
+      setCustomId(newWallet.customId);
+      setMnemonicWords(newWallet.mnemonic.split(' '));
       setCurrentStep('backup');
     } catch (err) {
+      console.error('Wallet generation error:', err);
       setError('Failed to create identity. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleBackupComplete = () => {
-    setCurrentStep('complete');
-    setTimeout(() => {
-      onSuccess?.();
-      router.push('/dashboard');
-    }, 2000);
+  const handleBackupComplete = async () => {
+    if (!walletData) {
+      setError('Wallet data not available');
+      return;
+    }
+
+    // Prevent multiple rapid calls
+    if (isLoading) {
+      console.log('Already processing, ignoring duplicate call');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Starting wallet creation process:', {
+        address: walletData.address,
+        customId: walletData.customId,
+        customIdLength: walletData.customId?.length,
+        selectedSecurity,
+        hasPassword: !!password,
+        passwordLength: password?.length
+      });
+
+      // Validate required data
+      if (!password) {
+        throw new Error('Password is required for wallet creation');
+      }
+
+      if (!walletData) {
+        throw new Error('Wallet data is missing');
+      }
+
+      // Create wallet with selected security level
+      await createSecureWallet(walletData, password, {
+        level: selectedSecurity,
+        carrierImage: undefined // No carrier image for redesigned flow
+      });
+
+      console.log('Wallet created successfully, storing locally and starting authentication...');
+
+      // IMPORTANT: Store wallet locally so it appears on login page
+      const { encryptWallet } = await import('@/lib/wallet');
+      const { storeEncryptedWallet } = await import('@/lib/multi-wallet-storage');
+      const encryptedWallet = encryptWallet(walletData, password);
+      storeEncryptedWallet(encryptedWallet);
+      console.log('Wallet stored locally for future logins');
+
+      // Perform authentication to log the user in automatically
+      // Get fresh challenge and sign it
+      const nonce = await getAuthChallenge(walletData.address);
+
+      // Create wallet instance for signing
+      const wallet = new Wallet(walletData.privateKey);
+      const signature = await wallet.signMessage(nonce);
+
+      // Verify signature with server to establish session
+      await verifySignature(walletData.address, signature);
+
+      // Set wallet in context
+      setWallet(walletData);
+
+      console.log('Authentication successful, redirecting...');
+
+      setCurrentStep('complete');
+      setTimeout(() => {
+        onSuccess?.();
+        router.push('/dashboard');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Wallet creation/authentication error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save signing identity');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -562,15 +689,23 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
             </div>
 
             <form onSubmit={handleIdentitySubmit} className="space-y-6">
-              <FormInput
-                label="Custom Identity ID"
-                value={customId}
-                onChange={setCustomId}
-                placeholder="e.g., SIGN-001"
-                required
-                icon={<SecurityIcons.Fingerprint className="w-5 h-5 text-neutral-400" />}
-                securityLevel={selectedSecurity}
-              />
+              {/* Auto-generated Custom Identity ID Display */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-neutral-300">
+                  Custom Identity ID*
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <SecurityIcons.Fingerprint className="w-5 h-5 text-neutral-400" />
+                  </div>
+                  <div className="w-full pl-10 pr-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white font-mono text-lg tracking-wider">
+                    {customId || 'Generating...'}
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  Auto-generated unique 18-character identifier
+                </p>
+              </div>
 
               <FormInput
                 label="Password"
@@ -647,9 +782,16 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
               onClick={handleBackupComplete}
               fullWidth
               variant="success"
+              disabled={isLoading}
             >
-              I've Saved My Recovery Phrase
+              {isLoading ? 'Creating Identity...' : "I've Saved My Recovery Phrase"}
             </Button>
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            )}
           </Card>
         )}
 
