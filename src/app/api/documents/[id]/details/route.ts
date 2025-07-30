@@ -94,7 +94,7 @@ export async function GET(
         userId: log.user_id,
         ipAddress: log.ip_address,
         userAgent: log.user_agent,
-        createdAt: log.created_at
+        createdAt: log.timestamp
       })),
       statistics: {
         totalSignatures: signatures.length,

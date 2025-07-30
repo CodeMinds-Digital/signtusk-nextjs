@@ -191,11 +191,10 @@ export const SignDocumentRedesigned: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
       <Navigation
-        currentPath="/sign-document"
+        currentPage="sign-document"
         userInfo={wallet ? {
           customId: wallet.customId,
-          address: wallet.address,
-          securityLevel: 'enhanced'
+          address: wallet.address
         } : undefined}
         onLogout={handleLogout}
       />

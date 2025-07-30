@@ -101,11 +101,10 @@ export const DashboardRedesigned: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
       <Navigation
-        currentPath="/dashboard"
+        currentPage="dashboard"
         userInfo={{
           customId: wallet.customId,
-          address: wallet.address,
-          securityLevel: 'enhanced' // This should come from user settings
+          address: wallet.address
         }}
         onLogout={handleLogout}
       />

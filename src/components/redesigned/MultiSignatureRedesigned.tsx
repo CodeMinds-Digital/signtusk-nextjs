@@ -225,7 +225,7 @@ export const MultiSignatureRedesigned: React.FC = () => {
           const updatedSigners = [...d.signers];
           updatedSigners[signerIndex] = {
             ...updatedSigners[signerIndex],
-            status: 'signed',
+            status: 'signed' as const,
             signature: result.signature,
             signedAt: new Date().toISOString()
           };
@@ -233,11 +233,12 @@ export const MultiSignatureRedesigned: React.FC = () => {
           // Check if all required signatures are collected
           const signedCount = updatedSigners.filter(s => s.status === 'signed').length;
           const isCompleted = signedCount === d.requiredSigners;
+          const newStatus: 'completed' | 'pending' = isCompleted ? 'completed' : 'pending';
 
           return {
             ...d,
             signers: updatedSigners,
-            status: isCompleted ? 'completed' : 'pending',
+            status: newStatus,
             completedAt: isCompleted ? new Date().toISOString() : undefined
           };
         }
@@ -272,11 +273,10 @@ export const MultiSignatureRedesigned: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
       <Navigation
-        currentPath="/multi-signature"
+        currentPage="multi-signature"
         userInfo={wallet ? {
           customId: wallet.customId,
-          address: wallet.address,
-          securityLevel: 'enhanced'
+          address: wallet.address
         } : undefined}
         onLogout={handleLogout}
       />
@@ -535,7 +535,7 @@ export const MultiSignatureRedesigned: React.FC = () => {
               {pendingSignatures.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-neutral-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <SecurityIcons.Clock className="w-8 h-8 text-neutral-400" />
+                    <SecurityIcons.Activity className="w-8 h-8 text-neutral-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-neutral-300 mb-2">No Pending Signatures</h3>
                   <p className="text-neutral-400">You have no documents waiting for signatures</p>
