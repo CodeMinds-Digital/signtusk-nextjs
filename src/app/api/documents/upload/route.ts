@@ -3,6 +3,7 @@ import { verifyJWT } from '@/lib/jwt';
 import { generateDocumentHashServer } from '@/lib/document-server';
 import { uploadFileAsAdmin } from '@/lib/supabase-admin';
 import { DocumentDatabase, AuditLogger } from '@/lib/database';
+import { checkForDuplicateDocument, formatDuplicateMessage } from '@/lib/duplicate-document-checker';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const metadata = formData.get('metadata') as string;
+    const forceUpload = formData.get('forceUpload') === 'true'; // Allow override for confirmed uploads
 
     if (!file) {
       return NextResponse.json(
@@ -58,7 +60,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 1: Upload original document to Supabase Storage using admin client
+    // Step 1: Generate document hash first to check for duplicates
+    const originalHash = await generateDocumentHashServer(file);
+
+    // Step 2: Check for duplicate documents
+    const duplicateCheck = await checkForDuplicateDocument(originalHash, custom_id);
+
+    // ALWAYS block completed/signed documents, even with forceUpload
+    if (duplicateCheck.isDuplicate && !duplicateCheck.canProceed) {
+      return NextResponse.json({
+        success: false,
+        error: 'duplicate_document',
+        message: formatDuplicateMessage(duplicateCheck),
+        duplicate_info: {
+          action: duplicateCheck.action,
+          existing_document: duplicateCheck.existingDocument,
+          can_proceed: duplicateCheck.canProceed
+        }
+      }, { status: 409 }); // 409 Conflict
+    }
+
+    // Only ask for confirmation if not force upload
+    if (!forceUpload && duplicateCheck.isDuplicate && duplicateCheck.action === 'confirm') {
+      return NextResponse.json({
+        success: false,
+        error: 'duplicate_confirmation_required',
+        message: formatDuplicateMessage(duplicateCheck),
+        duplicate_info: {
+          action: duplicateCheck.action,
+          existing_document: duplicateCheck.existingDocument,
+          can_proceed: duplicateCheck.canProceed
+        }
+      }, { status: 409 }); // 409 Conflict
+    }
+
+
+
+    // Step 3: Upload original document to Supabase Storage using admin client
     const originalUploadPath = `documents/${custom_id}/${Date.now()}_original_${file.name}`;
     const originalUploadResult = await uploadFileAsAdmin(file, 'documents', originalUploadPath);
 
@@ -70,10 +108,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2: Generate document hash using server-side function
-    const originalHash = await generateDocumentHashServer(file);
-
-    // Step 3: Create document record in database with 'uploaded' status
+    // Step 4: Create document record in database with 'uploaded' status
     const documentRecord = await DocumentDatabase.createDocument({
       file_name: file.name,
       file_size: file.size,
@@ -85,7 +120,7 @@ export async function POST(request: NextRequest) {
       metadata: parsedMetadata
     });
 
-    // Step 4: Log document upload
+    // Step 5: Log document upload
     await AuditLogger.logDocumentUpload(
       documentRecord.id!,
       custom_id,
@@ -102,7 +137,9 @@ export async function POST(request: NextRequest) {
       success: true,
       document: documentRecord,
       preview_url: originalUploadResult.publicUrl,
-      message: 'Document uploaded successfully'
+      message: forceUpload
+        ? 'Document uploaded successfully (duplicate confirmed)'
+        : 'Document uploaded successfully'
     });
 
   } catch (error) {

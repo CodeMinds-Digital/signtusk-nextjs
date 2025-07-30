@@ -28,7 +28,7 @@ export async function checkForDuplicateDocument(
   currentUserId?: string
 ): Promise<DuplicateCheckResult> {
   try {
-    // Query for existing documents with the same hash
+    // Query for existing documents with the same hash (simplified query first)
     const { data: existingDocuments, error } = await supabase
       .from('documents')
       .select(`
@@ -37,15 +37,12 @@ export async function checkForDuplicateDocument(
         status,
         created_at,
         public_url,
-        signed_public_url,
-        document_signatures (
-          signer_id,
-          signed_at,
-          created_at
-        )
+        signed_public_url
       `)
       .eq('original_hash', documentHash)
       .order('created_at', { ascending: false });
+
+    console.log('Database query executed for hash:', documentHash);
 
     if (error) {
       console.error('Error checking for duplicate documents:', error);
@@ -68,21 +65,43 @@ export async function checkForDuplicateDocument(
     }
 
     // Found existing document(s) with same hash
+    // Check if ANY document with this hash is completed or signed
+    const completedDocuments = existingDocuments.filter(doc =>
+      doc.status === 'completed' || doc.status === 'signed'
+    );
+
+    if (completedDocuments.length > 0) {
+      // If any document with this hash is completed, block the upload
+      const completedDoc = completedDocuments[0]; // Get the first completed document
+
+      return {
+        isDuplicate: true,
+        existingDocument: {
+          id: completedDoc.id,
+          file_name: completedDoc.file_name,
+          status: completedDoc.status,
+          created_at: completedDoc.created_at,
+          signed_at: null,
+          signer_id: null,
+          public_url: completedDoc.public_url,
+          signed_public_url: completedDoc.signed_public_url
+        },
+        canProceed: false,
+        message: `This document has already been signed and completed. Please upload a new document instead.`,
+        action: 'block'
+      };
+    }
+
+    // If no completed documents, check the most recent document
     const mostRecentDocument = existingDocuments[0];
-    const signatures = mostRecentDocument.document_signatures || [];
-    
-    // Determine the most recent signature info
-    const latestSignature = signatures.length > 0 
-      ? signatures.sort((a, b) => new Date(b.signed_at || b.created_at).getTime() - new Date(a.signed_at || a.created_at).getTime())[0]
-      : null;
 
     const existingDocumentInfo = {
       id: mostRecentDocument.id,
       file_name: mostRecentDocument.file_name,
       status: mostRecentDocument.status,
       created_at: mostRecentDocument.created_at,
-      signed_at: latestSignature?.signed_at || latestSignature?.created_at,
-      signer_id: latestSignature?.signer_id,
+      signed_at: null,
+      signer_id: null,
       public_url: mostRecentDocument.public_url,
       signed_public_url: mostRecentDocument.signed_public_url
     };
@@ -132,7 +151,7 @@ export async function checkForDuplicateDocument(
         if (currentUserId) {
           // Check if current user has any relationship to this document
           const userSignatures = signatures.filter(sig => sig.signer_id === currentUserId);
-          
+
           if (userSignatures.length > 0) {
             return {
               isDuplicate: true,
@@ -236,7 +255,7 @@ export async function canUserUploadDocument(
 }> {
   try {
     const existingDocuments = await getExistingDocumentsByHash(documentHash);
-    
+
     if (existingDocuments.length === 0) {
       return {
         canUpload: true,
@@ -251,7 +270,7 @@ export async function canUserUploadDocument(
       return signatures.some((sig: any) => sig.signer_id === userId);
     });
 
-    const incompleteUserDocuments = userDocuments.filter(doc => 
+    const incompleteUserDocuments = userDocuments.filter(doc =>
       !['completed', 'signed'].includes(doc.status)
     );
 
@@ -263,7 +282,7 @@ export async function canUserUploadDocument(
       };
     }
 
-    const completedDocuments = existingDocuments.filter(doc => 
+    const completedDocuments = existingDocuments.filter(doc =>
       ['completed', 'signed'].includes(doc.status)
     );
 
@@ -310,7 +329,7 @@ export function formatDuplicateMessage(result: DuplicateCheckResult): string {
   const signedDate = doc.signed_at ? new Date(doc.signed_at).toLocaleDateString() : null;
 
   let message = `Document "${doc.file_name}" was previously uploaded on ${uploadDate}`;
-  
+
   if (doc.status === 'completed' && signedDate) {
     message += ` and completed on ${signedDate}`;
   } else if (doc.status === 'signed' && signedDate) {
