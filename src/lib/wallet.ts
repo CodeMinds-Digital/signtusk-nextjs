@@ -6,14 +6,14 @@ export interface WalletData {
   address: string;
   privateKey: string;
   mnemonic: string;
-  customId: string;
+  customId?: string; // Optional - generated server-side during signup
 }
 
 export interface EncryptedWallet {
   encryptedMnemonic: string;
   encryptedPrivateKey: string;
   address: string;
-  customId: string;
+  customId?: string; // Optional - generated server-side during signup
   salt: string;
 }
 
@@ -24,68 +24,70 @@ export interface EncryptedWallet {
 export function generateCustomId(): string {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const numbers = '0123456789';
-  
+
   let customId = '';
-  
+
   // First 3 letters
   for (let i = 0; i < 3; i++) {
     customId += letters.charAt(Math.floor(Math.random() * letters.length));
   }
-  
+
   // 4 numbers
   for (let i = 0; i < 4; i++) {
     customId += numbers.charAt(Math.floor(Math.random() * numbers.length));
   }
-  
+
   // 4 letters
   for (let i = 0; i < 4; i++) {
     customId += letters.charAt(Math.floor(Math.random() * letters.length));
   }
-  
+
   // 4 numbers
   for (let i = 0; i < 4; i++) {
     customId += numbers.charAt(Math.floor(Math.random() * numbers.length));
   }
-  
+
   return customId;
 }
 
 /**
  * Generate a new wallet with mnemonic phrase
+ * Custom ID will be generated server-side during signup
  */
-export function generateWallet(wordCount: 12 | 24 = 12): WalletData {
+export function generateWallet(wordCount: 12 | 24 = 24): WalletData {
   // Generate entropy based on word count
   const entropy = wordCount === 12 ? 128 : 256;
-  
+
   // Generate mnemonic
   const mnemonic = bip39.generateMnemonic(entropy);
-  
+
   // Create wallet from mnemonic
   const wallet = Wallet.fromPhrase(mnemonic);
-  
+
   return {
     address: wallet.address,
     privateKey: wallet.privateKey,
-    mnemonic: mnemonic,
-    customId: generateCustomId()
+    mnemonic: mnemonic
+    // customId will be generated server-side
   };
 }
 
 /**
  * Restore wallet from mnemonic
+ * Custom ID will be retrieved from server during login
  */
 export function restoreWalletFromMnemonic(mnemonic: string): WalletData {
   if (!bip39.validateMnemonic(mnemonic)) {
     throw new Error('Invalid mnemonic phrase');
   }
-  
+
   const wallet = Wallet.fromPhrase(mnemonic);
-  
+
   return {
     address: wallet.address,
     privateKey: wallet.privateKey,
-    mnemonic: mnemonic,
-    customId: generateCustomId()
+    mnemonic: mnemonic
+    // customId will be retrieved from server
   };
 }
 
@@ -94,23 +96,23 @@ export function restoreWalletFromMnemonic(mnemonic: string): WalletData {
  */
 export function encryptWallet(walletData: WalletData, password: string): EncryptedWallet {
   // Generate a random salt
-  const salt = CryptoJS.lib.WordArray.random(256/8).toString();
-  
+  const salt = CryptoJS.lib.WordArray.random(256 / 8).toString();
+
   // Derive key from password and salt
   const key = CryptoJS.PBKDF2(password, salt, {
-    keySize: 256/32,
+    keySize: 256 / 32,
     iterations: 10000
   });
-  
+
   // Encrypt mnemonic and private key
   const encryptedMnemonic = CryptoJS.AES.encrypt(walletData.mnemonic, key.toString()).toString();
   const encryptedPrivateKey = CryptoJS.AES.encrypt(walletData.privateKey, key.toString()).toString();
-  
+
   return {
     encryptedMnemonic,
     encryptedPrivateKey,
     address: walletData.address,
-    customId: walletData.customId,
+    customId: walletData.customId, // May be undefined for new wallets
     salt
   };
 }
@@ -122,23 +124,23 @@ export function decryptWallet(encryptedWallet: EncryptedWallet, password: string
   try {
     // Derive key from password and salt
     const key = CryptoJS.PBKDF2(password, encryptedWallet.salt, {
-      keySize: 256/32,
+      keySize: 256 / 32,
       iterations: 10000
     });
-    
+
     // Decrypt mnemonic and private key
     const decryptedMnemonic = CryptoJS.AES.decrypt(encryptedWallet.encryptedMnemonic, key.toString()).toString(CryptoJS.enc.Utf8);
     const decryptedPrivateKey = CryptoJS.AES.decrypt(encryptedWallet.encryptedPrivateKey, key.toString()).toString(CryptoJS.enc.Utf8);
-    
+
     if (!decryptedMnemonic || !decryptedPrivateKey) {
       throw new Error('Invalid password');
     }
-    
+
     return {
       address: encryptedWallet.address,
       privateKey: decryptedPrivateKey,
       mnemonic: decryptedMnemonic,
-      customId: encryptedWallet.customId
+      customId: encryptedWallet.customId // May be undefined for new wallets
     };
   } catch {
     throw new Error('Invalid password or corrupted wallet data');
@@ -158,9 +160,9 @@ export function validateMnemonic(mnemonic: string): boolean {
  * - 12 words: ask for 4 random words
  * - 24 words: ask for 6 random words
  */
-export function getRandomWordsForVerification(mnemonic: string, count?: number): Array<{index: number, word: string}> {
+export function getRandomWordsForVerification(mnemonic: string, count?: number): Array<{ index: number, word: string }> {
   const words = mnemonic.split(' ');
-  
+
   // Determine verification count based on mnemonic length if not specified
   let verificationCount = count;
   if (!verificationCount) {
@@ -172,14 +174,14 @@ export function getRandomWordsForVerification(mnemonic: string, count?: number):
       verificationCount = Math.min(3, words.length); // Fallback for other lengths
     }
   }
-  
+
   const indices = new Set<number>();
-  
+
   // Generate unique random indices
   while (indices.size < verificationCount) {
     indices.add(Math.floor(Math.random() * words.length));
   }
-  
+
   return Array.from(indices)
     .sort((a, b) => a - b) // Sort indices for better UX
     .map(index => ({
@@ -192,11 +194,11 @@ export function getRandomWordsForVerification(mnemonic: string, count?: number):
  * Verify selected words match the mnemonic
  */
 export function verifyMnemonicWords(
-  mnemonic: string, 
-  selectedWords: Array<{index: number, word: string}>
+  mnemonic: string,
+  selectedWords: Array<{ index: number, word: string }>
 ): boolean {
   const words = mnemonic.split(' ');
-  
+
   return selectedWords.every(({ index, word }) => {
     return words[index - 1] === word; // Convert back to 0-based indexing
   });

@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Define protected routes
 const protectedRoutes = ['/dashboard', '/profile', '/delete-wallet', '/sign-document', '/multi-signature', '/verify'];
 
+// Define protected API routes
+const protectedApiRoutes = ['/api/steganography'];
+
 // Simple JWT verification for Edge Runtime
 function verifyJWTEdge(token: string): { wallet_address: string } | null {
   try {
@@ -40,11 +43,23 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
-  if (isProtectedRoute) {
+  // Check if the current path is a protected API route
+  const isProtectedApiRoute = protectedApiRoutes.some(route =>
+    pathname.startsWith(route)
+  );
+
+  if (isProtectedRoute || isProtectedApiRoute) {
     // Get the auth token from cookies
     const token = request.cookies.get('auth-token')?.value;
 
     if (!token) {
+      if (isProtectedApiRoute) {
+        // For API routes, return 401 instead of redirect
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
       // No token found, redirect to login
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
@@ -55,6 +70,13 @@ export function middleware(request: NextRequest) {
     const payload = verifyJWTEdge(token);
 
     if (!payload) {
+      if (isProtectedApiRoute) {
+        // For API routes, return 401 instead of redirect
+        return NextResponse.json(
+          { error: 'Invalid authentication token' },
+          { status: 401 }
+        );
+      }
       // Invalid token, redirect to login
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
@@ -87,6 +109,7 @@ export const config = {
     '/delete-wallet/:path*',
     '/sign-document/:path*',
     '/multi-signature/:path*',
-    '/verify/:path*'
+    '/verify/:path*',
+    '/api/steganography/:path*'
   ],
 };

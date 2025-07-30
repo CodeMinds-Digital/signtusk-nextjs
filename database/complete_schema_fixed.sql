@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- User profiles table to store consistent custom IDs
 CREATE TABLE user_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    custom_id VARCHAR(15) UNIQUE NOT NULL,
+    custom_id VARCHAR(18) UNIQUE NOT NULL,
     email VARCHAR(255),
     display_name VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -27,7 +27,7 @@ CREATE TABLE user_profiles (
 CREATE TABLE wallets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_profile_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
-    custom_id VARCHAR(15) NOT NULL REFERENCES user_profiles(custom_id) ON DELETE CASCADE,
+    custom_id VARCHAR(18) NOT NULL REFERENCES user_profiles(custom_id) ON DELETE CASCADE,
     wallet_address VARCHAR(42) UNIQUE NOT NULL,
     encrypted_private_key TEXT NOT NULL,
     encrypted_mnemonic TEXT,
@@ -52,7 +52,7 @@ CREATE TABLE challenges (
 CREATE TABLE auth_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_profile_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
-    custom_id VARCHAR(15) NOT NULL REFERENCES user_profiles(custom_id) ON DELETE CASCADE,
+    custom_id VARCHAR(18) NOT NULL REFERENCES user_profiles(custom_id) ON DELETE CASCADE,
     wallet_address VARCHAR(42) NOT NULL REFERENCES wallets(wallet_address) ON DELETE CASCADE,
     session_token VARCHAR(255) UNIQUE NOT NULL,
     nonce VARCHAR(64),
@@ -83,7 +83,7 @@ CREATE TABLE documents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Link to user identity system (ENHANCED)
-    uploader_custom_id VARCHAR(15) REFERENCES user_profiles(custom_id),
+    uploader_custom_id VARCHAR(18) REFERENCES user_profiles(custom_id),
     uploader_wallet_address VARCHAR(42) REFERENCES wallets(wallet_address)
 );
 
@@ -99,7 +99,7 @@ CREATE TABLE document_signatures (
     signed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Link to user identity system (ENHANCED)
-    signer_custom_id VARCHAR(15) REFERENCES user_profiles(custom_id),
+    signer_custom_id VARCHAR(18) REFERENCES user_profiles(custom_id),
     FOREIGN KEY (signer_address) REFERENCES wallets(wallet_address)
 );
 
@@ -114,7 +114,7 @@ CREATE TABLE audit_logs (
     user_agent TEXT,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Link to user identity system (ENHANCED)
-    user_custom_id VARCHAR(15) REFERENCES user_profiles(custom_id),
+    user_custom_id VARCHAR(18) REFERENCES user_profiles(custom_id),
     user_wallet_address VARCHAR(42) REFERENCES wallets(wallet_address)
 );
 
@@ -130,7 +130,7 @@ CREATE TABLE multi_signature_requests (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     completed_at TIMESTAMP WITH TIME ZONE,
     -- Link to user identity system (ENHANCED)
-    initiator_custom_id VARCHAR(15) REFERENCES user_profiles(custom_id),
+    initiator_custom_id VARCHAR(18) REFERENCES user_profiles(custom_id),
     FOREIGN KEY (initiator_address) REFERENCES wallets(wallet_address)
 );
 
@@ -144,7 +144,7 @@ CREATE TABLE required_signers (
     signed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Link to user identity system (ENHANCED)
-    signer_custom_id VARCHAR(15) REFERENCES user_profiles(custom_id),
+    signer_custom_id VARCHAR(18) REFERENCES user_profiles(custom_id),
     FOREIGN KEY (signer_address) REFERENCES wallets(wallet_address)
 );
 
@@ -157,7 +157,7 @@ CREATE TABLE verification_attempts (
     verification_details JSONB,
     verified_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Link to user identity system (ENHANCED)
-    verifier_custom_id VARCHAR(15) REFERENCES user_profiles(custom_id),
+    verifier_custom_id VARCHAR(18) REFERENCES user_profiles(custom_id),
     verifier_wallet_address VARCHAR(42) REFERENCES wallets(wallet_address)
 );
 
@@ -260,57 +260,62 @@ CREATE TRIGGER update_documents_updated_at
 DROP FUNCTION IF EXISTS generate_custom_id();
 DROP FUNCTION IF EXISTS create_user_with_wallet(VARCHAR(42), TEXT, TEXT, VARCHAR(64), VARCHAR(100), VARCHAR(255));
 DROP FUNCTION IF EXISTS get_user_by_wallet_address(VARCHAR(42));
-DROP FUNCTION IF EXISTS update_last_login(VARCHAR(15));
+DROP FUNCTION IF EXISTS update_last_login(VARCHAR(18));
 DROP FUNCTION IF EXISTS clean_expired_sessions();
 DROP FUNCTION IF EXISTS clean_expired_challenges();
 DROP FUNCTION IF EXISTS get_document_stats();
-DROP FUNCTION IF EXISTS get_user_document_summary(VARCHAR(15));
+DROP FUNCTION IF EXISTS get_user_document_summary(VARCHAR(18));
 DROP FUNCTION IF EXISTS cleanup_old_data();
 
 -- Function to generate unique custom ID
 CREATE OR REPLACE FUNCTION generate_custom_id()
-RETURNS VARCHAR(15) AS $$
+RETURNS VARCHAR(18) AS $$
 DECLARE
     letters CONSTANT TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     numbers CONSTANT TEXT := '0123456789';
-    custom_id VARCHAR(15);
+    custom_id VARCHAR(18);
     exists_check INTEGER;
 BEGIN
     LOOP
-        -- Generate custom ID: 3 letters + 4 numbers + 4 letters + 4 numbers
+        -- Generate custom ID: 3 letters + 4 numbers + 4 letters + 4 numbers + 3 letters = 18 characters
         custom_id := '';
-        
+
         -- First 3 letters
         FOR i IN 1..3 LOOP
             custom_id := custom_id || substr(letters, floor(random() * length(letters) + 1)::int, 1);
         END LOOP;
-        
+
         -- 4 numbers
         FOR i IN 1..4 LOOP
             custom_id := custom_id || substr(numbers, floor(random() * length(numbers) + 1)::int, 1);
         END LOOP;
-        
+
         -- 4 letters
         FOR i IN 1..4 LOOP
             custom_id := custom_id || substr(letters, floor(random() * length(letters) + 1)::int, 1);
         END LOOP;
-        
+
         -- 4 numbers
         FOR i IN 1..4 LOOP
             custom_id := custom_id || substr(numbers, floor(random() * length(numbers) + 1)::int, 1);
         END LOOP;
-        
+
+        -- Final 3 letters
+        FOR i IN 1..3 LOOP
+            custom_id := custom_id || substr(letters, floor(random() * length(letters) + 1)::int, 1);
+        END LOOP;
+
         -- Check if this custom_id already exists
-        SELECT COUNT(*) INTO exists_check 
-        FROM user_profiles 
+        SELECT COUNT(*) INTO exists_check
+        FROM user_profiles
         WHERE user_profiles.custom_id = custom_id;
-        
+
         -- If unique, break the loop
         IF exists_check = 0 THEN
             EXIT;
         END IF;
     END LOOP;
-    
+
     RETURN custom_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -326,11 +331,11 @@ CREATE OR REPLACE FUNCTION create_user_with_wallet(
 )
 RETURNS TABLE(
     user_id UUID,
-    custom_id VARCHAR(15),
+    custom_id VARCHAR(18),
     wallet_address VARCHAR(42)
 ) AS $$
 DECLARE
-    v_custom_id VARCHAR(15);
+    v_custom_id VARCHAR(18);
     v_user_id UUID;
     v_wallet_id UUID;
 BEGIN
@@ -370,7 +375,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_user_by_wallet_address(p_wallet_address VARCHAR(42))
 RETURNS TABLE(
     user_id UUID,
-    custom_id VARCHAR(15),
+    custom_id VARCHAR(18),
     wallet_address VARCHAR(42),
     encrypted_private_key TEXT,
     encrypted_mnemonic TEXT,
@@ -399,7 +404,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to update last login
-CREATE OR REPLACE FUNCTION update_last_login(p_custom_id VARCHAR(15))
+CREATE OR REPLACE FUNCTION update_last_login(p_custom_id VARCHAR(18))
 RETURNS VOID AS $$
 BEGIN
     UPDATE user_profiles 
@@ -457,7 +462,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to get user document summary
-CREATE OR REPLACE FUNCTION get_user_document_summary(p_custom_id VARCHAR(15))
+CREATE OR REPLACE FUNCTION get_user_document_summary(p_custom_id VARCHAR(18))
 RETURNS TABLE(
     total_documents BIGINT,
     signed_documents BIGINT,
@@ -652,11 +657,11 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 GRANT EXECUTE ON FUNCTION generate_custom_id() TO authenticated;
 GRANT EXECUTE ON FUNCTION create_user_with_wallet(VARCHAR(42), TEXT, TEXT, VARCHAR(64), VARCHAR(100), VARCHAR(255)) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_user_by_wallet_address(VARCHAR(42)) TO authenticated;
-GRANT EXECUTE ON FUNCTION update_last_login(VARCHAR(15)) TO authenticated;
+GRANT EXECUTE ON FUNCTION update_last_login(VARCHAR(18)) TO authenticated;
 GRANT EXECUTE ON FUNCTION clean_expired_sessions() TO authenticated;
 GRANT EXECUTE ON FUNCTION clean_expired_challenges() TO authenticated;
 GRANT EXECUTE ON FUNCTION get_document_stats() TO authenticated;
-GRANT EXECUTE ON FUNCTION get_user_document_summary(VARCHAR(15)) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_user_document_summary(VARCHAR(18)) TO authenticated;
 
 -- ============================================================================
 -- INITIAL DATA / SETUP
@@ -707,11 +712,11 @@ COMMENT ON TABLE required_signers IS 'Required signers for multi-signature docum
 COMMENT ON TABLE verification_attempts IS 'Document verification attempts';
 COMMENT ON TABLE schema_version IS 'Tracks database schema versions';
 
-COMMENT ON FUNCTION generate_custom_id() IS 'Generates unique 15-character custom ID';
+COMMENT ON FUNCTION generate_custom_id() IS 'Generates unique 18-character custom ID';
 COMMENT ON FUNCTION create_user_with_wallet(VARCHAR(42), TEXT, TEXT, VARCHAR(64), VARCHAR(100), VARCHAR(255)) IS 'Creates user profile with wallet atomically';
 COMMENT ON FUNCTION get_user_by_wallet_address(VARCHAR(42)) IS 'Retrieves user by wallet address for login';
-COMMENT ON FUNCTION update_last_login(VARCHAR(15)) IS 'Updates last login timestamp';
+COMMENT ON FUNCTION update_last_login(VARCHAR(18)) IS 'Updates last login timestamp';
 COMMENT ON FUNCTION clean_expired_sessions() IS 'Removes expired authentication sessions';
 COMMENT ON FUNCTION clean_expired_challenges() IS 'Removes expired authentication challenges';
 COMMENT ON FUNCTION get_document_stats() IS 'Returns document statistics';
-COMMENT ON FUNCTION get_user_document_summary(VARCHAR(15)) IS 'Returns user-specific document summary';
+COMMENT ON FUNCTION get_user_document_summary(VARCHAR(18)) IS 'Returns user-specific document summary';

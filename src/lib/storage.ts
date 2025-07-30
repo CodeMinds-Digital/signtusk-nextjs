@@ -8,7 +8,7 @@ const WALLET_STORAGE_KEY = 'encrypted_wallet';
  */
 export function storeEncryptedWallet(encryptedWallet: EncryptedWallet): void {
   if (typeof window === 'undefined') return;
-  
+
   try {
     localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(encryptedWallet));
   } catch {
@@ -21,7 +21,7 @@ export function storeEncryptedWallet(encryptedWallet: EncryptedWallet): void {
  */
 export function getEncryptedWallet(): EncryptedWallet | null {
   if (typeof window === 'undefined') return null;
-  
+
   try {
     const stored = localStorage.getItem(WALLET_STORAGE_KEY);
     return stored ? JSON.parse(stored) : null;
@@ -52,9 +52,17 @@ export function removeStoredWallet(): void {
  */
 
 /**
- * Create wallet in Supabase database
+ * Create wallet in Supabase database with enhanced security
+ * Returns the server-generated custom ID
  */
-export async function createWalletInDatabase(walletAddress: string, encryptedPrivateKey: string): Promise<void> {
+export async function createWalletInDatabase(
+  walletAddress: string,
+  encryptedPrivateKey: string,
+  encryptedMnemonic?: string,
+  salt?: string,
+  displayName?: string,
+  email?: string
+): Promise<{ custom_id: string; wallet_address: string }> {
   const response = await fetch('/api/wallet/create', {
     method: 'POST',
     headers: {
@@ -62,7 +70,11 @@ export async function createWalletInDatabase(walletAddress: string, encryptedPri
     },
     body: JSON.stringify({
       wallet_address: walletAddress,
-      encrypted_private_key: encryptedPrivateKey
+      encrypted_private_key: encryptedPrivateKey,
+      encrypted_mnemonic: encryptedMnemonic,
+      salt: salt,
+      display_name: displayName,
+      email: email
     })
   });
 
@@ -70,6 +82,9 @@ export async function createWalletInDatabase(walletAddress: string, encryptedPri
     const error = await response.json();
     throw new Error(error.error || 'Failed to create wallet');
   }
+
+  const result = await response.json();
+  return result;
 }
 
 /**
@@ -131,9 +146,9 @@ export async function getCurrentUser(): Promise<{ wallet_address: string; custom
     }
 
     const data = await response.json();
-    return data.success ? { 
+    return data.success ? {
       wallet_address: data.wallet_address,
-      custom_id: data.custom_id 
+      custom_id: data.custom_id
     } : null;
   } catch {
     return null;

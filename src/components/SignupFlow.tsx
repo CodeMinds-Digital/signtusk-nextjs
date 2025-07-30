@@ -17,8 +17,8 @@ export default function SignupFlow() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [walletData, setWalletData] = useState<WalletData | null>(null);
-  const [mnemonicWordCount, setMnemonicWordCount] = useState<12 | 24>(12);
-  const [verificationWords, setVerificationWords] = useState<Array<{index: number, word: string}>>([]);
+  const [mnemonicWordCount] = useState<12 | 24>(24); // Always use highest security (24 words)
+  const [verificationWords, setVerificationWords] = useState<Array<{ index: number, word: string }>>([]);
   const [userVerificationInputs, setUserVerificationInputs] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -83,27 +83,36 @@ export default function SignupFlow() {
     try {
       // Encrypt wallet
       const encryptedWallet = encryptWallet(walletData, password);
-      
-      // Store wallet locally
-      storeEncryptedWallet(encryptedWallet);
-      
-      // Store wallet in Supabase database
-      await createWalletInDatabase(walletData.address, encryptedWallet.encryptedPrivateKey);
-      
+
+      // Store wallet in Supabase database and get server-generated custom ID
+      const { custom_id } = await createWalletInDatabase(
+        walletData.address,
+        encryptedWallet.encryptedPrivateKey,
+        encryptedWallet.encryptedMnemonic,
+        encryptedWallet.salt
+      );
+
+      // Update wallet data with server-generated custom ID
+      const walletWithCustomId = { ...walletData, customId: custom_id };
+      const encryptedWalletWithCustomId = { ...encryptedWallet, customId: custom_id };
+
+      // Store wallet locally with custom ID
+      storeEncryptedWallet(encryptedWalletWithCustomId);
+
       // Perform authentication to log the user in automatically
       // Get fresh challenge and sign it
       const nonce = await getAuthChallenge(walletData.address);
-      
+
       // Create wallet instance for signing
       const wallet = new Wallet(walletData.privateKey);
       const signature = await wallet.signMessage(nonce);
 
       // Verify signature with server to establish session
       await verifySignature(walletData.address, signature);
-      
-      // Set wallet in context
-      setWallet(walletData);
-      
+
+      // Set wallet in context with custom ID
+      setWallet(walletWithCustomId);
+
       setCurrentStep('complete');
     } catch (error) {
       console.error('Wallet creation error:', error);
@@ -138,18 +147,15 @@ export default function SignupFlow() {
   const renderPasswordStep = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Create Your Signing Identity</h2>
-      
+
       <form onSubmit={handlePasswordSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-2 text-gray-300">Recovery Phrase Length</label>
-          <select
-            value={mnemonicWordCount}
-            onChange={(e) => setMnemonicWordCount(Number(e.target.value) as 12 | 24)}
-            className="w-full p-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-          >
-            <option value={12}>12 words (recommended)</option>
-            <option value={24}>24 words (more secure)</option>
-          </select>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <svg className="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-green-300 text-sm font-medium">Maximum Security: 24-word recovery phrase</span>
+          </div>
         </div>
 
         <div>
@@ -199,7 +205,7 @@ export default function SignupFlow() {
   const renderMnemonicDisplay = () => (
     <div className="max-w-2xl mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Your Recovery Phrase</h2>
-      
+
       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
         <div className="flex items-center mb-2">
           <span className="text-yellow-400 font-semibold">⚠️ Critical:</span>
@@ -241,7 +247,7 @@ export default function SignupFlow() {
   const renderMnemonicVerify = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Verify Your Recovery Phrase</h2>
-      
+
       <p className="text-gray-300 mb-6 text-center">
         Please enter the following words from your recovery phrase to confirm you&apos;ve saved it correctly.
       </p>
@@ -303,16 +309,14 @@ export default function SignupFlow() {
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 text-center">
       <div className="text-green-400 text-6xl mb-4">✅</div>
       <h2 className="text-2xl font-bold mb-4 text-white">Signing Identity Created!</h2>
-      
+
       <div className="bg-white/5 p-4 rounded-lg mb-6 border border-white/10">
-        <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
-        <p className="font-mono text-lg text-purple-400 mb-3">{walletData?.customId}</p>
         <p className="text-sm text-gray-400 mb-2">Your Signing Address:</p>
         <p className="font-mono text-sm break-all text-gray-300">{walletData ? getChecksumAddress(walletData.address) : ''}</p>
       </div>
 
       <p className="text-gray-300 mb-6">
-        Your signing identity has been created and encrypted with your password. You can now sign documents securely on the blockchain.
+        Your secure signing identity has been created with maximum security (24-word recovery phrase) and encrypted with your password. You can now sign documents securely on the blockchain.
       </p>
 
       <button
