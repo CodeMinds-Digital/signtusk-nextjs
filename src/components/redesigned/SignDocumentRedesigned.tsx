@@ -526,8 +526,8 @@ export const SignDocumentRedesigned: React.FC = () => {
               )}
 
               <Button
-                onClick={handleUploadDocument}
-                disabled={!selectedFile || isProcessing || (errorMessage && duplicateInfo?.action === 'block')}
+                onClick={() => handleUploadDocument()}
+                disabled={!selectedFile || isProcessing || Boolean(errorMessage && duplicateInfo?.action === 'block')}
                 loading={isProcessing}
                 fullWidth
                 size="lg"

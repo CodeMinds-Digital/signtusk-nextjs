@@ -36,6 +36,8 @@ export async function checkForDuplicateDocument(
         file_name,
         status,
         created_at,
+        signed_at,
+        signer_id,
         public_url,
         signed_public_url
       `)
@@ -81,8 +83,8 @@ export async function checkForDuplicateDocument(
           file_name: completedDoc.file_name,
           status: completedDoc.status,
           created_at: completedDoc.created_at,
-          signed_at: null,
-          signer_id: null,
+          signed_at: completedDoc.signed_at || undefined,
+          signer_id: completedDoc.signer_id || undefined,
           public_url: completedDoc.public_url,
           signed_public_url: completedDoc.signed_public_url
         },
@@ -100,8 +102,8 @@ export async function checkForDuplicateDocument(
       file_name: mostRecentDocument.file_name,
       status: mostRecentDocument.status,
       created_at: mostRecentDocument.created_at,
-      signed_at: null,
-      signer_id: null,
+      signed_at: mostRecentDocument.signed_at || undefined,
+      signer_id: mostRecentDocument.signer_id || undefined,
       public_url: mostRecentDocument.public_url,
       signed_public_url: mostRecentDocument.signed_public_url
     };
@@ -113,7 +115,7 @@ export async function checkForDuplicateDocument(
           isDuplicate: true,
           existingDocument: existingDocumentInfo,
           canProceed: false,
-          message: `This document has already been signed and completed${latestSignature?.signer_id ? ` by ${latestSignature.signer_id}` : ''}. Please upload a new document instead.`,
+          message: `This document has already been signed and completed${mostRecentDocument.signer_id ? ` by ${mostRecentDocument.signer_id}` : ''}. Please upload a new document instead.`,
           action: 'block'
         };
 
@@ -122,13 +124,13 @@ export async function checkForDuplicateDocument(
           isDuplicate: true,
           existingDocument: existingDocumentInfo,
           canProceed: false,
-          message: `This document has already been signed${latestSignature?.signer_id ? ` by ${latestSignature.signer_id}` : ''}. Please upload a new document instead.`,
+          message: `This document has already been signed${mostRecentDocument.signer_id ? ` by ${mostRecentDocument.signer_id}` : ''}. Please upload a new document instead.`,
           action: 'block'
         };
 
       case 'accepted':
         // Check if current user is the one who accepted it
-        if (currentUserId && latestSignature?.signer_id === currentUserId) {
+        if (currentUserId && mostRecentDocument.signer_id === currentUserId) {
           return {
             isDuplicate: true,
             existingDocument: existingDocumentInfo,
@@ -141,7 +143,7 @@ export async function checkForDuplicateDocument(
             isDuplicate: true,
             existingDocument: existingDocumentInfo,
             canProceed: false,
-            message: `This document has already been accepted for signing${latestSignature?.signer_id ? ` by ${latestSignature.signer_id}` : ''}. Please upload a new document instead.`,
+            message: `This document has already been accepted for signing${mostRecentDocument.signer_id ? ` by ${mostRecentDocument.signer_id}` : ''}. Please upload a new document instead.`,
             action: 'block'
           };
         }
@@ -149,10 +151,8 @@ export async function checkForDuplicateDocument(
       case 'uploaded':
         // Check if current user uploaded it
         if (currentUserId) {
-          // Check if current user has any relationship to this document
-          const userSignatures = signatures.filter(sig => sig.signer_id === currentUserId);
-
-          if (userSignatures.length > 0) {
+          // Check if current user is the signer of this document
+          if (mostRecentDocument.signer_id === currentUserId) {
             return {
               isDuplicate: true,
               existingDocument: existingDocumentInfo,
