@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { SecurityIcons, SecurityLevelBadge } from '../ui/DesignSystem';
 import { Navigation } from '../ui/Navigation';
 import { encryptWallet } from '@/lib/wallet';
+import { Wallet } from 'ethers';
 
 interface FormInputProps {
   label: string;
@@ -137,27 +138,15 @@ export const SettingsRedesigned: React.FC<SettingsRedesignedProps> = ({ onPageCh
     setExportError('');
 
     try {
-      // Create keystore file
-      const encryptedWallet = encryptWallet(wallet, exportPassword);
-      const keystoreData = {
-        version: 3,
-        id: crypto.randomUUID(),
-        address: wallet.address.toLowerCase().replace('0x', ''),
-        crypto: {
-          ciphertext: encryptedWallet.encryptedPrivateKey,
-          cipherparams: { iv: encryptedWallet.salt },
-          cipher: 'aes-128-ctr',
-          kdf: 'pbkdf2',
-          kdfparams: {
-            dklen: 32,
-            salt: encryptedWallet.salt,
-            c: 10000,
-            prf: 'hmac-sha256'
-          },
-          mac: encryptedWallet.salt
-        },
-        customId: wallet.customId
-      };
+      // Create wallet instance for proper keystore encryption
+      const ethersWallet = new Wallet(wallet.privateKey);
+
+      // Use ethers.js to create proper keystore format
+      const keystoreJson = await ethersWallet.encrypt(exportPassword);
+
+      // Parse the keystore to add our custom fields
+      const keystoreData = JSON.parse(keystoreJson);
+      keystoreData.customId = wallet.customId; // Add our custom ID field
 
       // Download keystore file
       const blob = new Blob([JSON.stringify(keystoreData, null, 2)], { type: 'application/json' });
