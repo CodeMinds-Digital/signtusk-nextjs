@@ -41,6 +41,10 @@ export const SignDocumentRedesigned: React.FC = () => {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
+  // Add error state for UI messages
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = useState<any>(null);
+
   const handleLogout = () => {
     router.push('/logout');
   };
@@ -63,6 +67,7 @@ export const SignDocumentRedesigned: React.FC = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       setSelectedFile(file);
+      clearError(); // Clear any previous error messages
       setDocumentMetadata(prev => ({
         ...prev,
         title: file.name.replace(/\.[^/.]+$/, ''),
@@ -75,6 +80,7 @@ export const SignDocumentRedesigned: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedFile(file);
+      clearError(); // Clear any previous error messages
       setDocumentMetadata(prev => ({
         ...prev,
         title: file.name.replace(/\.[^/.]+$/, ''),
@@ -84,7 +90,7 @@ export const SignDocumentRedesigned: React.FC = () => {
   };
 
   // Step 1: Upload document and metadata
-  const handleUploadDocument = async () => {
+  const handleUploadDocument = async (forceUpload: boolean = false) => {
     if (!selectedFile || !wallet) {
       alert('Please select a file and ensure you are logged in');
       return;
@@ -95,6 +101,9 @@ export const SignDocumentRedesigned: React.FC = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('metadata', JSON.stringify(documentMetadata));
+      if (forceUpload) {
+        formData.append('forceUpload', 'true');
+      }
 
       const response = await fetch('/api/documents/upload', {
         method: 'POST',
@@ -102,27 +111,95 @@ export const SignDocumentRedesigned: React.FC = () => {
         credentials: 'include'
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload document');
-      }
-
       const result = await response.json();
-      setDocumentId(result.document.id);
-      setPdfPreviewUrl(result.preview_url);
-      setCurrentStep('preview');
+
+      if (!response.ok) {
+        // Handle duplicate detection
+        if (response.status === 409 && (result.error === 'duplicate_document' || result.error === 'duplicate_confirmation_required')) {
+          const duplicateInfo = result.duplicate_info;
+
+          if (duplicateInfo.action === 'block') {
+            // Document already completed - show error in UI
+            setErrorMessage(result.message);
+            setDuplicateInfo(duplicateInfo);
+            return;
+          } else if (duplicateInfo.action === 'confirm') {
+            // Show confirmation in UI instead of browser popup
+            setErrorMessage(result.message);
+            setDuplicateInfo(duplicateInfo);
+            return;
+          }
+        } else {
+          throw new Error(result.error || 'Failed to upload document');
+        }
+      } else if (result.success) {
+        // Only proceed if response was successful AND result indicates success
+        setDocumentId(result.document.id);
+        setPdfPreviewUrl(result.preview_url);
+        setCurrentStep('preview');
+      }
 
     } catch (error) {
       console.error('Error uploading document:', error);
-      alert(error instanceof Error ? error.message : 'Failed to upload document');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to upload document');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // Handle user response to duplicate detection
+  const handleDuplicateConfirm = async () => {
+    setErrorMessage(null);
+    setDuplicateInfo(null);
+    // Retry with force upload
+    await handleUploadDocument(true);
+  };
+
+  const handleDuplicateCancel = () => {
+    setErrorMessage(null);
+    setDuplicateInfo(null);
+  };
+
+  const clearError = () => {
+    setErrorMessage(null);
+    setDuplicateInfo(null);
+  };
+
   // Step 2: Accept document and proceed to signing
-  const handleAcceptDocument = () => {
-    setCurrentStep('sign');
+  const handleAcceptDocument = async () => {
+    if (!documentId || !wallet) {
+      alert('No document to accept or wallet not available');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/documents/accept', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          document_id: documentId,
+          action: 'accept'
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to accept document');
+      }
+
+      const result = await response.json();
+      setCurrentStep('sign');
+
+    } catch (error) {
+      console.error('Error accepting document:', error);
+      alert(error instanceof Error ? error.message : 'Failed to accept document');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Step 3: Sign the accepted document
@@ -155,8 +232,8 @@ export const SignDocumentRedesigned: React.FC = () => {
       setCurrentStep('complete');
       setSigningResult({
         success: true,
-        documentId: result.document_id,
-        signedUrl: result.signed_url
+        documentId: result.document.id,
+        signedUrl: result.download_urls.signed
       });
 
     } catch (error) {
@@ -178,6 +255,7 @@ export const SignDocumentRedesigned: React.FC = () => {
     setPdfPreviewUrl(null);
     setSigningResult(null);
     setDocumentMetadata({ title: '', purpose: '', signerInfo: '' });
+    clearError(); // Clear any error messages
   };
 
   const formatFileSize = (bytes: number) => {
@@ -342,7 +420,10 @@ export const SignDocumentRedesigned: React.FC = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setSelectedFile(null)}
+                      onClick={() => {
+                        setSelectedFile(null);
+                        clearError(); // Clear any error messages
+                      }}
                     >
                       Remove
                     </Button>
@@ -395,9 +476,58 @@ export const SignDocumentRedesigned: React.FC = () => {
                 </div>
               )}
 
+              {/* Error Message Display */}
+              {errorMessage && (
+                <div className="mt-6 p-4 rounded-lg border border-red-500/20 bg-red-500/10">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-red-400 mb-1">
+                        {duplicateInfo?.action === 'block' ? 'Upload Blocked' : 'Duplicate Document Detected'}
+                      </h3>
+                      <p className="text-sm text-red-300 mb-3">{errorMessage}</p>
+
+                      {duplicateInfo?.action === 'confirm' && (
+                        <div className="flex space-x-3">
+                          <Button
+                            onClick={handleDuplicateConfirm}
+                            size="sm"
+                            variant="primary"
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Proceed Anyway
+                          </Button>
+                          <Button
+                            onClick={handleDuplicateCancel}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+
+                      {duplicateInfo?.action === 'block' && (
+                        <Button
+                          onClick={clearError}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          Choose Different Document
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Button
                 onClick={handleUploadDocument}
-                disabled={!selectedFile || isProcessing}
+                disabled={!selectedFile || isProcessing || (errorMessage && duplicateInfo?.action === 'block')}
                 loading={isProcessing}
                 fullWidth
                 size="lg"
@@ -437,11 +567,13 @@ export const SignDocumentRedesigned: React.FC = () => {
                 </Button>
                 <Button
                   onClick={handleAcceptDocument}
+                  disabled={isProcessing}
+                  loading={isProcessing}
                   fullWidth
                   size="lg"
                   icon={<SecurityIcons.Verified className="w-5 h-5" />}
                 >
-                  Accept & Proceed to Sign
+                  {isProcessing ? 'Accepting Document...' : 'Accept & Proceed to Sign'}
                 </Button>
               </div>
             </Card>
