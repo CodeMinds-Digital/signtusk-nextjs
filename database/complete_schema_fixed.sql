@@ -256,6 +256,17 @@ CREATE TRIGGER update_documents_updated_at
 -- CUSTOM FUNCTIONS
 -- ============================================================================
 
+-- Drop existing functions first to avoid conflicts
+DROP FUNCTION IF EXISTS generate_custom_id();
+DROP FUNCTION IF EXISTS create_user_with_wallet(VARCHAR(42), TEXT, TEXT, VARCHAR(64), VARCHAR(100), VARCHAR(255));
+DROP FUNCTION IF EXISTS get_user_by_wallet_address(VARCHAR(42));
+DROP FUNCTION IF EXISTS update_last_login(VARCHAR(15));
+DROP FUNCTION IF EXISTS clean_expired_sessions();
+DROP FUNCTION IF EXISTS clean_expired_challenges();
+DROP FUNCTION IF EXISTS get_document_stats();
+DROP FUNCTION IF EXISTS get_user_document_summary(VARCHAR(15));
+DROP FUNCTION IF EXISTS cleanup_old_data();
+
 -- Function to generate unique custom ID
 CREATE OR REPLACE FUNCTION generate_custom_id()
 RETURNS VARCHAR(15) AS $$
@@ -370,7 +381,7 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         up.id,
         up.custom_id,
         w.wallet_address,
