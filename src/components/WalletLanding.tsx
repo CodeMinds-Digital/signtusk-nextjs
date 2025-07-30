@@ -92,10 +92,10 @@ export default function WalletLanding() {
               </span>
             </h1>
           </div>
-          
+
           <div className={`transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <p className="text-xl text-gray-300 mb-16 max-w-4xl mx-auto leading-relaxed">
-              Revolutionary blockchain-powered document signing platform. Create your cryptographic identity, 
+              Revolutionary blockchain-powered document signing platform. Create your cryptographic identity,
               sign contracts with military-grade security, and verify authenticity with immutable blockchain records.
             </p>
           </div>
@@ -206,42 +206,42 @@ export default function WalletLanding() {
                 title: "Military-Grade Security",
                 description: "AES-256 encryption with local key storage. Your private keys never leave your device.",
                 gradient: "from-purple-500 to-pink-500",
-                delay: "delay-[1300ms]"
+                delay: "delay-700"
               },
               {
                 icon: "⛓️",
                 title: "Blockchain Verified",
                 description: "Immutable proof of authenticity recorded on Ethereum blockchain with timestamp verification.",
                 gradient: "from-blue-500 to-cyan-500",
-                delay: "delay-[1400ms]"
+                delay: "delay-1000"
               },
               {
                 icon: "⚖️",
                 title: "Legally Compliant",
                 description: "Meets international e-signature standards and regulations for legal document signing.",
                 gradient: "from-green-500 to-emerald-500",
-                delay: "delay-[1500ms]"
+                delay: "delay-1000"
               },
               {
                 icon: "🆔",
                 title: "Unique Identity",
                 description: "15-character unique signer ID for easy identification and cross-platform verification.",
                 gradient: "from-yellow-500 to-orange-500",
-                delay: "delay-[1600ms]"
+                delay: "delay-1000"
               },
               {
                 icon: "��️",
                 title: "Tamper Detection",
                 description: "Any document modification after signing is immediately detected and signature invalidated.",
                 gradient: "from-red-500 to-pink-500",
-                delay: "delay-[1700ms]"
+                delay: "delay-1000"
               },
               {
                 icon: "🌐",
                 title: "Universal Access",
                 description: "Cross-platform compatibility with desktop, mobile, and tablet devices worldwide.",
                 gradient: "from-indigo-500 to-purple-500",
-                delay: "delay-[1800ms]"
+                delay: "delay-1000"
               }
             ].map((feature, index) => (
               <div
@@ -260,7 +260,7 @@ export default function WalletLanding() {
           </div>
 
           {/* How It Works Section */}
-          <div className={`mt-32 transition-all duration-1000 delay-[1900ms] ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className={`mt-32 transition-all duration-1000 delay-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <h2 className="text-4xl font-bold text-white mb-16">How It Works</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               {[
@@ -270,7 +270,7 @@ export default function WalletLanding() {
                   description: "Generate your cryptographic signing identity with a unique 15-character ID"
                 },
                 {
-                  step: "02", 
+                  step: "02",
                   title: "Sign Documents",
                   description: "Upload and sign documents with your encrypted private key stored locally"
                 },
@@ -292,7 +292,7 @@ export default function WalletLanding() {
           </div>
 
           {/* Security Notice */}
-          <div className={`bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-3xl p-10 mt-32 backdrop-blur-sm transition-all duration-1000 delay-[2000ms] ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className={`bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-3xl p-10 mt-32 backdrop-blur-sm transition-all duration-1000 delay-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <div className="flex items-center justify-center mb-8">
               <div className="w-16 h-16 bg-yellow-500/20 rounded-2xl flex items-center justify-center mr-6">
                 <span className="text-yellow-400 text-3xl">⚠️</span>
@@ -322,7 +322,7 @@ export default function WalletLanding() {
       </main>
 
       {/* Footer */}
-      <footer className={`relative z-10 bg-black/30 backdrop-blur-md border-t border-white/10 mt-20 transition-all duration-1000 delay-[2100ms] ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+      <footer className={`relative z-10 bg-black/30 backdrop-blur-md border-t border-white/10 mt-20 transition-all duration-1000 delay-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
