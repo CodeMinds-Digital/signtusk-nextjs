@@ -231,8 +231,7 @@ export const VerifyEnhanced: React.FC<VerifyEnhancedProps> = ({ onPageChange }) 
         onPageChange={handlePageChange}
         userInfo={wallet ? {
           customId: wallet.customId,
-          address: wallet.address,
-          securityLevel: 'enhanced'
+          address: wallet.address
         } : undefined}
         onLogout={handleLogout}
       />

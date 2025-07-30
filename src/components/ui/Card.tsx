@@ -8,6 +8,7 @@ interface CardProps {
   hover?: boolean;
   glow?: boolean;
   glowColor?: 'primary' | 'success' | 'warning' | 'error';
+  onClick?: () => void;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -18,6 +19,7 @@ export const Card: React.FC<CardProps> = ({
   hover = false,
   glow = false,
   glowColor = 'primary',
+  onClick,
 }) => {
   const baseClasses = 'rounded-2xl transition-all duration-300';
 
@@ -48,7 +50,7 @@ export const Card: React.FC<CardProps> = ({
   const classes = `${baseClasses} ${variantClasses[variant]} ${paddingClasses[padding]} ${hoverClasses} ${glowClasses} ${className}`;
 
   return (
-    <div className={classes}>
+    <div className={classes} onClick={onClick}>
       {children}
     </div>
   );

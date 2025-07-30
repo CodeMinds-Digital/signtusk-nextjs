@@ -340,7 +340,7 @@ export const SettingsRedesigned: React.FC<SettingsRedesignedProps> = ({ onPageCh
                   ) : (
                     <Button
                       onClick={() => setShowMnemonic(true)}
-                      variant="warning"
+                      variant="danger"
                       icon={<SecurityIcons.Fingerprint className="w-4 h-4" />}
                     >
                       Reveal Recovery Phrase
