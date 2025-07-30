@@ -59,7 +59,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
       if (response.ok) {
         const result = await response.json();
-        setAuditLog(result.auditLog || []);
+        setAuditLog(result.auditLogs || []);
         setSignatures(result.signatures || []);
       } else {
         // Generate realistic audit log based on document status and metadata

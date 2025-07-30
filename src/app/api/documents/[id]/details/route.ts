@@ -86,16 +86,40 @@ export async function GET(
         verified: true,
         createdAt: sig.created_at
       })),
-      auditLogs: auditLogs.map(log => ({
-        id: log.id,
-        action: log.action,
-        details: log.details,
-        timestamp: log.timestamp,
-        userId: log.user_id,
-        ipAddress: log.ip_address,
-        userAgent: log.user_agent,
-        createdAt: log.timestamp
-      })),
+      auditLogs: auditLogs.map(log => {
+        // Create user-friendly descriptions based on action type
+        let description = '';
+        const details = log.details || {};
+
+        switch (log.action) {
+          case 'DOCUMENT_UPLOADED':
+            description = `Document "${details.file_name || 'unknown'}" was uploaded to the system`;
+            break;
+          case 'DOCUMENT_ACCEPTED':
+            description = `Document was accepted and approved for signing`;
+            break;
+          case 'DOCUMENT_SIGNED':
+            description = `Document was digitally signed using cryptographic signature`;
+            break;
+          case 'DOCUMENT_VERIFIED':
+            description = `Document signature was verified and validated`;
+            break;
+          default:
+            description = typeof details === 'object' ? JSON.stringify(details) : (details || 'Action performed');
+        }
+
+        return {
+          id: log.id,
+          action: log.action,
+          details: description,
+          timestamp: log.timestamp,
+          userId: log.user_id,
+          actor: log.user_id, // Add actor field for frontend compatibility
+          ipAddress: log.ip_address,
+          userAgent: log.user_agent,
+          createdAt: log.timestamp
+        };
+      }),
       statistics: {
         totalSignatures: signatures.length,
         validSignatures: signatures.length, // Assume all valid for now

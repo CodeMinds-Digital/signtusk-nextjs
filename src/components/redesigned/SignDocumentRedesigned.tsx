@@ -121,8 +121,40 @@ export const SignDocumentRedesigned: React.FC = () => {
   };
 
   // Step 2: Accept document and proceed to signing
-  const handleAcceptDocument = () => {
-    setCurrentStep('sign');
+  const handleAcceptDocument = async () => {
+    if (!documentId || !wallet) {
+      alert('No document to accept or wallet not available');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/documents/accept', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          document_id: documentId,
+          action: 'accept'
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to accept document');
+      }
+
+      const result = await response.json();
+      setCurrentStep('sign');
+
+    } catch (error) {
+      console.error('Error accepting document:', error);
+      alert(error instanceof Error ? error.message : 'Failed to accept document');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Step 3: Sign the accepted document
@@ -155,8 +187,8 @@ export const SignDocumentRedesigned: React.FC = () => {
       setCurrentStep('complete');
       setSigningResult({
         success: true,
-        documentId: result.document_id,
-        signedUrl: result.signed_url
+        documentId: result.document.id,
+        signedUrl: result.download_urls.signed
       });
 
     } catch (error) {
@@ -437,11 +469,13 @@ export const SignDocumentRedesigned: React.FC = () => {
                 </Button>
                 <Button
                   onClick={handleAcceptDocument}
+                  disabled={isProcessing}
+                  loading={isProcessing}
                   fullWidth
                   size="lg"
                   icon={<SecurityIcons.Verified className="w-5 h-5" />}
                 >
-                  Accept & Proceed to Sign
+                  {isProcessing ? 'Accepting Document...' : 'Accept & Proceed to Sign'}
                 </Button>
               </div>
             </Card>
