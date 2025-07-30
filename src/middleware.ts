@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Define protected routes
-const protectedRoutes = ['/dashboard', '/profile', '/delete-wallet'];
+const protectedRoutes = ['/dashboard', '/profile', '/delete-wallet', '/sign-document', '/multi-signature', '/verify'];
 
 // Simple JWT verification for Edge Runtime
 function verifyJWTEdge(token: string): { wallet_address: string } | null {
@@ -15,7 +15,7 @@ function verifyJWTEdge(token: string): { wallet_address: string } | null {
 
     // Decode the payload (middle part)
     const payload = JSON.parse(atob(parts[1]));
-    
+
     // Check if token has expired
     if (payload.exp && Date.now() >= payload.exp * 1000) {
       return null;
@@ -36,7 +36,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if the current path is a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some(route =>
     pathname.startsWith(route)
   );
 
@@ -53,12 +53,12 @@ export function middleware(request: NextRequest) {
 
     // Verify the JWT token using Edge-compatible method
     const payload = verifyJWTEdge(token);
-    
+
     if (!payload) {
       // Invalid token, redirect to login
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
-      
+
       // Clear the invalid token
       const response = NextResponse.redirect(loginUrl);
       response.cookies.set('auth-token', '', {
@@ -68,7 +68,7 @@ export function middleware(request: NextRequest) {
         maxAge: 0,
         path: '/'
       });
-      
+
       return response;
     }
 
@@ -84,6 +84,9 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/profile/:path*',
-    '/delete-wallet/:path*'
+    '/delete-wallet/:path*',
+    '/sign-document/:path*',
+    '/multi-signature/:path*',
+    '/verify/:path*'
   ],
 };

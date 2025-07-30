@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/contexts/WalletContext';
-import { DashboardEnhanced } from '@/components/redesigned/DashboardEnhanced';
+import { DocumentsRedesigned } from '@/components/redesigned/DocumentsRedesigned';
 import { LoadingSpinner, SecurityIcons } from '@/components/ui/DesignSystem';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
-export default function DashboardPage() {
+export default function DocumentsPage() {
   const { wallet, isLoading, isAuthenticated, currentUser } = useWallet();
   const router = useRouter();
   const [redirectTimer, setRedirectTimer] = useState<number | null>(null);
@@ -53,7 +53,7 @@ export default function DashboardPage() {
           <div className="w-16 h-16 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <LoadingSpinner size="lg" />
           </div>
-          <h2 className="text-xl font-bold mb-2 text-white">Loading Dashboard...</h2>
+          <h2 className="text-xl font-bold mb-2 text-white">Loading Documents...</h2>
           <p className="text-neutral-300">Verifying your secure identity...</p>
         </Card>
       </div>
@@ -70,7 +70,7 @@ export default function DashboardPage() {
           </div>
           <h2 className="text-xl font-bold mb-2 text-white">Authentication Required</h2>
           <p className="text-neutral-300 mb-6">
-            Please sign in to access your secure dashboard. You need a verified signing identity to use document signing features.
+            Please sign in to access your documents. You need a verified signing identity to view and manage your signed documents.
           </p>
 
           {redirectTimer && (
@@ -111,6 +111,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Show dashboard if authenticated
-  return <DashboardEnhanced />;
+  // Show documents if authenticated
+  return <DocumentsRedesigned />;
 }
