@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { useRouter } from 'next/navigation';
 
 export default function WalletLanding() {
@@ -92,10 +92,10 @@ export default function WalletLanding() {
               </span>
             </h1>
           </div>
-          
+
           <div className={`transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <p className="text-xl text-gray-300 mb-16 max-w-4xl mx-auto leading-relaxed">
-              Revolutionary blockchain-powered document signing platform. Create your cryptographic identity, 
+              Revolutionary blockchain-powered document signing platform. Create your cryptographic identity,
               sign contracts with military-grade security, and verify authenticity with immutable blockchain records.
             </p>
           </div>
@@ -270,7 +270,7 @@ export default function WalletLanding() {
                   description: "Generate your cryptographic signing identity with a unique 15-character ID"
                 },
                 {
-                  step: "02", 
+                  step: "02",
                   title: "Sign Documents",
                   description: "Upload and sign documents with your encrypted private key stored locally"
                 },

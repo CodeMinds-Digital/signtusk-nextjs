@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { removeStoredWallet, deleteWalletFromDatabase } from '@/lib/storage';
 import { getChecksumAddress } from '@/lib/wallet';
 
@@ -45,7 +45,7 @@ interface HistoryModal {
 }
 
 export default function Dashboard() {
-  const { wallet, logout } = useWallet();
+  const { wallet, logout, getSignerId } = useWallet();
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -377,7 +377,7 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-white mb-2">SignTusk Dashboard</h1>
               <div className="flex items-center space-x-4">
                 <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg">
-                  <span className="text-white font-semibold">Signer ID: {wallet!.customId}</span>
+                  <span className="text-white font-semibold">Signer ID: {getSignerId()}</span>
                 </div>
                 <div className="text-green-400 text-sm flex items-center">
                   <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>

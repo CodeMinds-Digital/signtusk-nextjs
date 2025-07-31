@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { SettingsRedesigned } from '@/components/redesigned/SettingsRedesigned';
 import { LoadingSpinner, SecurityIcons } from '@/components/ui/DesignSystem';
 import { Card } from '@/components/ui/Card';

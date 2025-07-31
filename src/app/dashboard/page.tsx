@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { DashboardEnhanced } from '@/components/redesigned/DashboardEnhanced';
 import { LoadingSpinner, SecurityIcons } from '@/components/ui/DesignSystem';
 import { Card } from '@/components/ui/Card';

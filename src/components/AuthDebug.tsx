@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 
 export default function AuthDebug() {
   const { isAuthenticated, currentUser, isLoading, hasWallet } = useWallet();

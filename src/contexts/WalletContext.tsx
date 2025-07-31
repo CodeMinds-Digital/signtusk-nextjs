@@ -2,16 +2,16 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { WalletData } from '@/lib/wallet';
-import { 
+import {
   hasStoredWallet,
   migrateFromSingleWallet
 } from '@/lib/multi-wallet-storage';
-import { 
-  getCurrentUser, 
+import {
+  getCurrentUser,
   logout as apiLogout
 } from '@/lib/storage';
-import { 
-  checkIdentityConsistency, 
+import {
+  checkIdentityConsistency,
   logIdentityConsistency,
   getAuthoritativeSignerId,
   createIdentityErrorMessage
@@ -26,6 +26,10 @@ interface WalletContextType {
   setWallet: (wallet: WalletData | null) => void;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
+  getSignerId: () => string | null;
+  identityConsistent: boolean;
+  identityIssues: string[];
+  identityErrorMessage: string;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -43,11 +47,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ wallet_address: string; custom_id?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [identityConsistent, setIdentityConsistent] = useState(true);
+  const [identityIssues, setIdentityIssues] = useState<string[]>([]);
+  const [identityErrorMessage, setIdentityErrorMessage] = useState('');
 
   // Store wallet in session storage for persistence across page navigations
   const storeWalletInSession = (walletData: WalletData | null) => {
     if (typeof window === 'undefined') return;
-    
+
     if (walletData) {
       sessionStorage.setItem(SESSION_WALLET_KEY, JSON.stringify(walletData));
     } else {
@@ -58,7 +65,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
   // Load wallet from session storage
   const loadWalletFromSession = (): WalletData | null => {
     if (typeof window === 'undefined') return null;
-    
+
     try {
       const stored = sessionStorage.getItem(SESSION_WALLET_KEY);
       return stored ? JSON.parse(stored) : null;
@@ -73,7 +80,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       const user = await getCurrentUser();
       setCurrentUser(user);
       setIsAuthenticated(!!user);
-      
+
       // If we have a user but no wallet in state, try to load from session first
       if (user && !wallet) {
         const sessionWallet = loadWalletFromSession();
@@ -90,6 +97,11 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   };
 
+  // Get authoritative signer ID
+  const getSignerId = (): string | null => {
+    return getAuthoritativeSignerId(wallet, currentUser);
+  };
+
   const loadWalletFromStorage = async () => {
     try {
       // Check if we have a stored wallet
@@ -103,27 +115,49 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   };
 
+  // Check identity consistency whenever wallet or currentUser changes
+  useEffect(() => {
+    if (wallet && currentUser) {
+      const consistencyResult = checkIdentityConsistency(wallet, currentUser);
+      setIdentityConsistent(consistencyResult.isConsistent);
+      setIdentityIssues(consistencyResult.issues);
+      setIdentityErrorMessage(createIdentityErrorMessage(consistencyResult));
+
+      // Log consistency check
+      logIdentityConsistency(wallet, currentUser, 'WalletContext');
+
+      // Show warning if inconsistent
+      if (!consistencyResult.isConsistent) {
+        console.warn('🚨 Identity Consistency Issues Detected:', {
+          issues: consistencyResult.issues,
+          recommendedAction: consistencyResult.recommendedAction,
+          details: consistencyResult.details
+        });
+      }
+    }
+  }, [wallet, currentUser]);
+
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
-      
+
       try {
         // Migrate from old single wallet storage if needed
         migrateFromSingleWallet();
-        
+
         // Check if wallet exists in localStorage
         const walletExists = hasStoredWallet();
         setHasWallet(walletExists);
-        
+
         // Try to load wallet from session storage first
         const sessionWallet = loadWalletFromSession();
         if (sessionWallet) {
           setWalletState(sessionWallet);
         }
-        
+
         // Check for active session with server
         await refreshAuth();
-        
+
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
@@ -136,10 +170,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
   const setWallet = (newWallet: WalletData | null) => {
     setWalletState(newWallet);
-    
+
     // Store in session storage for persistence
     storeWalletInSession(newWallet);
-    
+
     // Update authentication state based on wallet presence
     if (newWallet) {
       // Wallet is loaded, but authentication depends on server session
@@ -162,13 +196,13 @@ export function WalletProvider({ children }: WalletProviderProps) {
       setWalletState(null);
       setIsAuthenticated(false);
       setCurrentUser(null);
-      
+
       // Clear session storage
       storeWalletInSession(null);
-      
+
       // Update hasWallet state - wallet should still be stored for future logins
       setHasWallet(hasStoredWallet());
-      
+
       // IMPORTANT: DO NOT remove stored wallet
       // The encrypted wallet stays in localStorage so user can login again
       // with the SAME custom_id and wallet_address
@@ -186,6 +220,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
         setWallet,
         logout,
         refreshAuth,
+        getSignerId,
+        identityConsistent,
+        identityIssues,
+        identityErrorMessage,
       }}
     >
       {children}

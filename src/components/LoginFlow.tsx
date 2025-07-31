@@ -5,19 +5,19 @@ import { useRouter } from 'next/navigation';
 import { decryptWallet, getRandomWordsForVerification, verifyMnemonicWords, getChecksumAddress, WalletData } from '@/lib/wallet';
 import { getEncryptedWallet, getStoredWalletList, setCurrentWalletAddress, removeStoredWallet } from '@/lib/multi-wallet-storage';
 import { getAuthChallenge, verifySignature } from '@/lib/storage';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { Wallet } from 'ethers';
 
 type LoginStep = 'wallet-select' | 'password' | 'mnemonic-verify' | 'complete';
 
 export default function LoginFlow() {
-  const { setWallet, refreshAuth } = useWallet();
+  const { setWallet, refreshAuth, getSignerId } = useWallet();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<LoginStep>('wallet-select');
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string>('');
   const [password, setPassword] = useState('');
   const [walletData, setWalletData] = useState<WalletData | null>(null);
-  const [verificationWords, setVerificationWords] = useState<Array<{index: number, word: string}>>([]);
+  const [verificationWords, setVerificationWords] = useState<Array<{ index: number, word: string }>>([]);
   const [userVerificationInputs, setUserVerificationInputs] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +27,7 @@ export default function LoginFlow() {
   useEffect(() => {
     const wallets = getStoredWalletList();
     setAvailableWallets(wallets);
-    
+
     // If only one wallet, skip selection step
     if (wallets.length === 1) {
       setSelectedWalletAddress(wallets[0].address);
@@ -47,18 +47,18 @@ export default function LoginFlow() {
   const handleDeleteWallet = async (address: string, customId: string, event: React.MouseEvent) => {
     // Prevent the wallet selection when clicking delete
     event.stopPropagation();
-    
+
     const confirmMessage = `Are you sure you want to delete the signing identity "${customId}"?\n\nThis action cannot be undone. Make sure you have your recovery phrase saved if you want to restore this identity later.`;
-    
+
     if (window.confirm(confirmMessage)) {
       try {
         // Remove wallet from local storage
         removeStoredWallet(address);
-        
+
         // Update available wallets list
         const updatedWallets = getStoredWalletList();
         setAvailableWallets(updatedWallets);
-        
+
         // If no wallets left, redirect to import
         if (updatedWallets.length === 0) {
           router.push('/import');
@@ -67,7 +67,7 @@ export default function LoginFlow() {
           setSelectedWalletAddress(updatedWallets[0].address);
           setCurrentStep('password');
         }
-        
+
         // Show success message briefly
         alert(`Identity "${customId}" has been deleted successfully.`);
       } catch (error) {
@@ -132,7 +132,7 @@ export default function LoginFlow() {
     try {
       // Get fresh challenge and sign it
       const nonce = await getAuthChallenge(walletData.address);
-      
+
       // Create wallet instance for signing
       const wallet = new Wallet(walletData.privateKey);
       const signature = await wallet.signMessage(nonce);
@@ -145,7 +145,7 @@ export default function LoginFlow() {
 
       // Set wallet in context
       setWallet(walletData);
-      
+
       setCurrentStep('complete');
     } catch (error) {
       console.error('Authentication error:', error);
@@ -158,7 +158,7 @@ export default function LoginFlow() {
   const renderWalletSelect = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Select Identity to Login</h2>
-      
+
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
         <p className="text-blue-300 text-sm">
           🔐 Choose which signing identity you want to access. Hover over an identity to see the delete option.
@@ -215,7 +215,7 @@ export default function LoginFlow() {
   const renderPasswordStep = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Welcome Back to SignTusk</h2>
-      
+
       <form onSubmit={handlePasswordSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2 text-gray-300">Password</label>
@@ -278,7 +278,7 @@ export default function LoginFlow() {
   const renderMnemonicVerify = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Security Verification</h2>
-      
+
       <p className="text-gray-300 mb-6 text-center">
         For your security, please enter the following words from your recovery phrase to complete login.
       </p>
@@ -340,10 +340,10 @@ export default function LoginFlow() {
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 text-center">
       <div className="text-green-400 text-6xl mb-4">✅</div>
       <h2 className="text-2xl font-bold mb-4 text-white">Welcome Back!</h2>
-      
+
       <div className="bg-white/5 p-4 rounded-lg mb-6 border border-white/10">
         <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
-        <p className="font-mono text-lg text-purple-400 mb-3">{walletData?.customId}</p>
+        <p className="font-mono text-lg text-purple-400 mb-3">{getSignerId()}</p>
         <p className="text-sm text-gray-400 mb-2">Your Ethereum Address:</p>
         <p className="font-mono text-sm break-all text-gray-300">{walletData ? getChecksumAddress(walletData.address) : ''}</p>
       </div>
@@ -356,7 +356,7 @@ export default function LoginFlow() {
         onClick={async () => {
           // Wait a moment to ensure cookie is properly set
           await new Promise(resolve => setTimeout(resolve, 500));
-          
+
           // Use Next.js router instead of window.location.href to preserve cookies
           router.push('/dashboard');
         }}

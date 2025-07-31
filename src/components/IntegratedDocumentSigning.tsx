@@ -1,27 +1,27 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { signDocument, verifySignature } from '@/lib/signing';
 import { generateDocumentHash } from '@/lib/document';
-import { 
-  uploadFileToSupabase, 
-  downloadFileFromSupabase, 
+import {
+  uploadFileToSupabase,
+  downloadFileFromSupabase,
   uploadBlobToSupabase,
-  getPublicUrl 
+  getPublicUrl
 } from '@/lib/supabase-storage';
-import { 
-  insertSignaturesIntoPDF, 
-  createSignatureData, 
+import {
+  insertSignaturesIntoPDF,
+  createSignatureData,
   createStampData,
   validatePDFForSigning,
-  SignatureData 
+  SignatureData
 } from '@/lib/pdf-signature-insert';
-import { 
-  DocumentDatabase, 
-  AuditLogger, 
-  DocumentRecord, 
-  SignatureRecord 
+import {
+  DocumentDatabase,
+  AuditLogger,
+  DocumentRecord,
+  SignatureRecord
 } from '@/lib/database';
 
 interface DocumentMetadata {
@@ -110,7 +110,7 @@ export default function IntegratedDocumentSigning() {
       setUploadedPath(uploadPath);
       setPreviewUrl(publicUrl || '');
       setCurrentStep('preview');
-      
+
       console.log('Document uploaded successfully to:', uploadPath);
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -184,7 +184,7 @@ export default function IntegratedDocumentSigning() {
 
       // Trigger signature insertion
       await insertSignatureIntoPDF();
-      
+
     } catch (error) {
       console.error('Error in accept flow:', error);
       alert('Failed to process document. Please try again.');
@@ -202,7 +202,7 @@ export default function IntegratedDocumentSigning() {
     try {
       // Download the original PDF from Supabase
       const { data: pdfBlob, error } = await downloadFileFromSupabase('documents', uploadedPath);
-      
+
       if (error || !pdfBlob) {
         throw new Error('Failed to download PDF from Supabase');
       }
@@ -222,8 +222,8 @@ export default function IntegratedDocumentSigning() {
 
       // Insert signatures using sign_insert logic
       const signedPdfBytes = await insertSignaturesIntoPDF(
-        pdfBytes, 
-        [signatureData], 
+        pdfBytes,
+        [signatureData],
         stampData
       );
 
@@ -285,10 +285,10 @@ export default function IntegratedDocumentSigning() {
 
       // Load updated documents
       await loadSignedDocuments();
-      
+
       setCurrentStep('complete');
       console.log('Signed PDF uploaded successfully to:', signedPath);
-      
+
     } catch (error) {
       console.error('Error inserting signature:', error);
       throw error;
@@ -346,7 +346,7 @@ export default function IntegratedDocumentSigning() {
     const steps: WorkflowStep[] = ['upload', 'preview', 'accept', 'sign', 'complete'];
     const currentIndex = steps.indexOf(currentStep);
     const stepIndex = steps.indexOf(step);
-    
+
     if (stepIndex < currentIndex) return 'completed';
     if (stepIndex === currentIndex) return 'current';
     return 'pending';
@@ -401,26 +401,23 @@ export default function IntegratedDocumentSigning() {
               const status = getStepStatus(step as WorkflowStep);
               return (
                 <div key={step} className="flex items-center">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${
-                    status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
-                    status === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
-                    'bg-gray-600 border-gray-600 text-gray-300'
-                  }`}>
+                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
+                      status === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
+                        'bg-gray-600 border-gray-600 text-gray-300'
+                    }`}>
                     <span className="text-lg">{icon}</span>
                   </div>
                   <div className="ml-3">
-                    <p className={`font-semibold text-sm ${
-                      status === 'completed' ? 'text-green-400' :
-                      status === 'current' ? 'text-purple-400' :
-                      'text-gray-400'
-                    }`}>
+                    <p className={`font-semibold text-sm ${status === 'completed' ? 'text-green-400' :
+                        status === 'current' ? 'text-purple-400' :
+                          'text-gray-400'
+                      }`}>
                       {label}
                     </p>
                   </div>
                   {index < 4 && (
-                    <div className={`w-16 h-0.5 mx-4 ${
-                      status === 'completed' ? 'bg-green-500' : 'bg-gray-600'
-                    }`} />
+                    <div className={`w-16 h-0.5 mx-4 ${status === 'completed' ? 'bg-green-500' : 'bg-gray-600'
+                      }`} />
                   )}
                 </div>
               );
@@ -453,7 +450,7 @@ export default function IntegratedDocumentSigning() {
                   accept=".pdf"
                   disabled={isProcessing}
                 />
-                
+
                 {selectedFile && (
                   <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
                     <p className="text-white font-semibold">{selectedFile.name}</p>
@@ -511,7 +508,7 @@ export default function IntegratedDocumentSigning() {
                     Open in New Tab
                   </a>
                 </div>
-                
+
                 <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                   <iframe
                     src={previewUrl}
@@ -529,7 +526,7 @@ export default function IntegratedDocumentSigning() {
 
               <div className="bg-white/5 rounded-lg border border-white/10 p-6 space-y-4">
                 <h4 className="text-lg font-semibold text-white">Document Metadata</h4>
-                
+
                 <div>
                   <label className="block text-white font-semibold mb-2">Title</label>
                   <input
@@ -742,15 +739,14 @@ export default function IntegratedDocumentSigning() {
                     </div>
                     <div className="text-right">
                       <p className="text-gray-400 text-sm">Size: {formatFileSize(doc.file_size)}</p>
-                      <p className={`text-sm ${
-                        doc.status === 'signed' ? 'text-green-400' : 
-                        doc.status === 'uploaded' ? 'text-yellow-400' : 'text-gray-400'
-                      }`}>
+                      <p className={`text-sm ${doc.status === 'signed' ? 'text-green-400' :
+                          doc.status === 'uploaded' ? 'text-yellow-400' : 'text-gray-400'
+                        }`}>
                         📊 {doc.status?.toUpperCase()}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex space-x-3">
                     {doc.public_url && (
                       <a

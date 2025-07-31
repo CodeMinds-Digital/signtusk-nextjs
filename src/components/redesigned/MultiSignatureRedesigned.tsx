@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { SecurityIcons, LoadingSpinner } from '../ui/DesignSystem';

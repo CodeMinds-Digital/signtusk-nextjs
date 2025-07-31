@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 
 export default function IdentityConsistencyWarning() {
   // @ts-ignore - These properties are added dynamically

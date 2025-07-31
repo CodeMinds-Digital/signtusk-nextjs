@@ -6,19 +6,19 @@ import { generateWallet, encryptWallet, getRandomWordsForVerification, verifyMne
 import { storeEncryptedWallet } from '@/lib/multi-wallet-storage';
 import { createWalletInDatabase, getAuthChallenge, verifySignature } from '@/lib/storage';
 import { Wallet } from 'ethers';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 
 type SignupStep = 'password' | 'mnemonic-display' | 'mnemonic-verify' | 'complete';
 
 export default function SignupFlow() {
-  const { setWallet } = useWallet();
+  const { setWallet, getSignerId } = useWallet();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<SignupStep>('password');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [mnemonicWordCount, setMnemonicWordCount] = useState<12 | 24>(12);
-  const [verificationWords, setVerificationWords] = useState<Array<{index: number, word: string}>>([]);
+  const [verificationWords, setVerificationWords] = useState<Array<{ index: number, word: string }>>([]);
   const [userVerificationInputs, setUserVerificationInputs] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -83,27 +83,27 @@ export default function SignupFlow() {
     try {
       // Encrypt wallet
       const encryptedWallet = encryptWallet(walletData, password);
-      
+
       // Store wallet locally
       storeEncryptedWallet(encryptedWallet);
-      
+
       // Store wallet in Supabase database
       await createWalletInDatabase(walletData.address, encryptedWallet.encryptedPrivateKey);
-      
+
       // Perform authentication to log the user in automatically
       // Get fresh challenge and sign it
       const nonce = await getAuthChallenge(walletData.address);
-      
+
       // Create wallet instance for signing
       const wallet = new Wallet(walletData.privateKey);
       const signature = await wallet.signMessage(nonce);
 
       // Verify signature with server to establish session
       await verifySignature(walletData.address, signature);
-      
+
       // Set wallet in context
       setWallet(walletData);
-      
+
       setCurrentStep('complete');
     } catch (error) {
       console.error('Wallet creation error:', error);
@@ -138,7 +138,7 @@ export default function SignupFlow() {
   const renderPasswordStep = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Create Your Signing Identity</h2>
-      
+
       <form onSubmit={handlePasswordSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2 text-gray-300">Recovery Phrase Length</label>
@@ -199,7 +199,7 @@ export default function SignupFlow() {
   const renderMnemonicDisplay = () => (
     <div className="max-w-2xl mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Your Recovery Phrase</h2>
-      
+
       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
         <div className="flex items-center mb-2">
           <span className="text-yellow-400 font-semibold">⚠️ Critical:</span>
@@ -241,7 +241,7 @@ export default function SignupFlow() {
   const renderMnemonicVerify = () => (
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
       <h2 className="text-2xl font-bold mb-6 text-center text-white">Verify Your Recovery Phrase</h2>
-      
+
       <p className="text-gray-300 mb-6 text-center">
         Please enter the following words from your recovery phrase to confirm you&apos;ve saved it correctly.
       </p>
@@ -303,10 +303,10 @@ export default function SignupFlow() {
     <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 text-center">
       <div className="text-green-400 text-6xl mb-4">✅</div>
       <h2 className="text-2xl font-bold mb-4 text-white">Signing Identity Created!</h2>
-      
+
       <div className="bg-white/5 p-4 rounded-lg mb-6 border border-white/10">
         <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
-        <p className="font-mono text-lg text-purple-400 mb-3">{walletData?.customId}</p>
+        <p className="font-mono text-lg text-purple-400 mb-3">{getSignerId()}</p>
         <p className="text-sm text-gray-400 mb-2">Your Signing Address:</p>
         <p className="font-mono text-sm break-all text-gray-300">{walletData ? getChecksumAddress(walletData.address) : ''}</p>
       </div>

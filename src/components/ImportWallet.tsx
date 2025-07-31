@@ -6,10 +6,10 @@ import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic, getChecksum
 import { storeEncryptedWallet } from '@/lib/multi-wallet-storage';
 import { getAuthChallenge, verifySignature } from '@/lib/storage';
 import { Wallet } from 'ethers';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 
 export default function ImportWallet() {
-  const { setWallet } = useWallet();
+  const { setWallet, getSignerId } = useWallet();
   const router = useRouter();
   const [mnemonic, setMnemonic] = useState('');
   const [password, setPassword] = useState('');
@@ -45,7 +45,7 @@ export default function ImportWallet() {
 
     // Clean and validate mnemonic
     const cleanMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
-    
+
     if (!validateMnemonic(cleanMnemonic)) {
       setError('Invalid recovery phrase. Please check your words and try again.');
       return;
@@ -55,22 +55,22 @@ export default function ImportWallet() {
     try {
       // Restore wallet from mnemonic
       const walletData = restoreWalletFromMnemonic(cleanMnemonic);
-      
+
       // Encrypt and store wallet locally
       const encryptedWallet = encryptWallet(walletData, password);
       storeEncryptedWallet(encryptedWallet);
-      
+
       // Perform authentication to log the user in automatically
       // Get fresh challenge and sign it
       const nonce = await getAuthChallenge(walletData.address);
-      
+
       // Create wallet instance for signing
       const wallet = new Wallet(walletData.privateKey);
       const signature = await wallet.signMessage(nonce);
 
       // Verify signature with server to establish session
       await verifySignature(walletData.address, signature);
-      
+
       // Set wallet in context
       setWallet(walletData);
       setImportedWallet(walletData);
@@ -86,7 +86,7 @@ export default function ImportWallet() {
   const handleWordInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setMnemonic(value);
-    
+
     // Clear error when user starts typing
     if (error) {
       setError('');
@@ -108,10 +108,10 @@ export default function ImportWallet() {
         <div className="max-w-md mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 text-center">
           <div className="text-green-400 text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold mb-4 text-white">Signing Identity Imported!</h2>
-          
+
           <div className="bg-white/5 p-4 rounded-lg mb-6 border border-white/10">
             <p className="text-sm text-gray-400 mb-2">Your Signer ID:</p>
-            <p className="font-mono text-lg text-purple-400 mb-3">{importedWallet.customId}</p>
+            <p className="font-mono text-lg text-purple-400 mb-3">{getSignerId()}</p>
             <p className="text-sm text-gray-400 mb-2">Your Signing Address:</p>
             <p className="font-mono text-sm break-all text-gray-300">{getChecksumAddress(importedWallet.address)}</p>
           </div>
@@ -135,7 +135,7 @@ export default function ImportWallet() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12">
       <div className="max-w-2xl mx-auto p-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
         <h2 className="text-2xl font-bold mb-6 text-center text-white">Import Existing Signing Identity</h2>
-        
+
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
           <div className="flex items-center mb-2">
             <span className="text-blue-400 font-semibold">ℹ️ Import Instructions:</span>

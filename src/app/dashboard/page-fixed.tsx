@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import Dashboard from "@/components/Dashboard";
 
 export default function DashboardPage() {
@@ -20,9 +20,9 @@ export default function DashboardPage() {
       const timer = setTimeout(() => {
         router.replace('/');
       }, 3000);
-      
+
       setRedirectTimer(3);
-      
+
       // Countdown timer
       const countdown = setInterval(() => {
         setRedirectTimer(prev => {
@@ -34,7 +34,7 @@ export default function DashboardPage() {
           }
         });
       }, 1000);
-      
+
       return () => {
         clearTimeout(timer);
         clearInterval(countdown);
@@ -69,7 +69,7 @@ export default function DashboardPage() {
           <p className="text-gray-300 mb-6">
             Please login to access the dashboard. You need a signing identity to use document signing features.
           </p>
-          
+
           {redirectTimer && (
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-6">
               <p className="text-yellow-300 text-sm">
@@ -77,7 +77,7 @@ export default function DashboardPage() {
               </p>
             </div>
           )}
-          
+
           <div className="flex flex-col space-y-3">
             <button
               onClick={() => router.push('/')}

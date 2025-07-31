@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { Card, SecurityCard } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { SecurityIcons, StatusIndicator } from '../ui/DesignSystem';
@@ -132,14 +132,14 @@ export const HomepageRedesigned: React.FC = () => {
           <div className="w-24 h-24 bg-gradient-to-r from-primary-500 to-primary-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-primary-500/25">
             <SecurityIcons.Shield className="w-12 h-12 text-white" />
           </div>
-          
+
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
             Secure Document
             <span className="bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent"> Signing</span>
           </h1>
-          
+
           <p className="text-xl text-neutral-300 mb-8 max-w-3xl mx-auto">
-            Sign documents securely with blockchain technology. Create your digital signing identity with 
+            Sign documents securely with blockchain technology. Create your digital signing identity with
             military-grade encryption and cryptographic verification.
           </p>
 
@@ -197,16 +197,14 @@ export const HomepageRedesigned: React.FC = () => {
               return (
                 <Card key={index} variant="glass" padding="lg" hover glow glowColor={feature.color}>
                   <div className="text-center">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
-                      feature.color === 'primary' ? 'bg-primary-500/20' :
-                      feature.color === 'success' ? 'bg-green-500/20' :
-                      'bg-yellow-500/20'
-                    }`}>
-                      <Icon className={`w-8 h-8 ${
-                        feature.color === 'primary' ? 'text-primary-400' :
-                        feature.color === 'success' ? 'text-green-400' :
-                        'text-yellow-400'
-                      }`} />
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${feature.color === 'primary' ? 'bg-primary-500/20' :
+                        feature.color === 'success' ? 'bg-green-500/20' :
+                          'bg-yellow-500/20'
+                      }`}>
+                      <Icon className={`w-8 h-8 ${feature.color === 'primary' ? 'text-primary-400' :
+                          feature.color === 'success' ? 'text-green-400' :
+                            'text-yellow-400'
+                        }`} />
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
                     <p className="text-neutral-300">{feature.description}</p>
