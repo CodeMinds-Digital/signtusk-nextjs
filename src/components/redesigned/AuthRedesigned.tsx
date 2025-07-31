@@ -528,9 +528,7 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
       // Store wallet in database
       await createWalletInDatabase(
         walletData.address,
-        encryptedWallet.encryptedPrivateKey,
-        encryptedWallet.encryptedMnemonic,
-        encryptedWallet.salt
+        encryptedWallet.encryptedPrivateKey
       );
 
       // Authenticate user

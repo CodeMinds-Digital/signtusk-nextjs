@@ -129,6 +129,10 @@ export default function EnhancedDocumentSigning() {
     try {
       // Create signature data for PDF generation
       const signerId = getSignerId();
+      if (!signerId) {
+        throw new Error('Unable to get signer ID');
+      }
+
       const signatureData: SignatureData = {
         id: signerId,
         signerName: documentMetadata.signerInfo || signerId,

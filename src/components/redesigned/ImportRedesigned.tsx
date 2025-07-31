@@ -215,7 +215,7 @@ export const ImportRedesigned: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!privateKey || !password || !customId) {
+    if (!privateKey || !password) {
       setError('Please fill in all required fields');
       return;
     }
