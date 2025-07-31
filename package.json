@@ -18,6 +18,8 @@
     "test-hash": "node test-hash.js"
   },
   "dependencies": {
+    "@dicebear/collection": "^9.2.3",
+    "@dicebear/core": "^9.2.3",
     "@scure/bip32": "^1.7.0",
     "@supabase/supabase-js": "^2.52.0",
     "@types/crypto-js": "^4.2.2",
@@ -36,6 +38,7 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
     "next": "15.4.1",
+    "pako": "^2.1.0",
     "pdf-lib": "^1.17.1",
     "postcss": "^8.5.6",
     "react": "19.1.0",

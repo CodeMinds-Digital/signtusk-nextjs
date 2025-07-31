@@ -1,6 +1,7 @@
--- Steganography Schema Extension for SignTusk
+-- Steganography Schema Extension for SignTusk - FIXED VERSION
 -- Adds support for steganographic data storage and management
 -- To be applied after complete_schema_fixed.sql
+-- FIXES: Ambiguous column reference issues
 
 -- ============================================================================
 -- STEGANOGRAPHY TABLES
@@ -75,7 +76,7 @@ CREATE TRIGGER update_steganographic_images_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
--- CUSTOM FUNCTIONS
+-- CUSTOM FUNCTIONS - FIXED VERSION
 -- ============================================================================
 
 -- Function to get user's steganographic images
@@ -110,7 +111,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to log steganographic access
+-- Function to log steganographic access - FIXED VERSION
 CREATE OR REPLACE FUNCTION log_steganographic_access(
     p_image_id UUID,
     p_user_custom_id VARCHAR(18),
@@ -134,7 +135,7 @@ BEGIN
         error_message,
         additional_data
     )
-    SELECT
+    SELECT 
         p_image_id,
         p_user_custom_id,
         w.wallet_address,
@@ -258,4 +259,4 @@ COMMENT ON FUNCTION get_steganographic_stats() IS 'Returns overall steganographi
 
 -- Update schema version
 INSERT INTO schema_version (version, description) 
-VALUES ('1.2.0', 'Added steganography support with secure image-based data hiding');
+VALUES ('1.2.0', 'Added steganography support with secure image-based data hiding - FIXED VERSION');

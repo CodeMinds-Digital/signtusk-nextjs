@@ -101,7 +101,7 @@ export default function SteganographyBackup({
             value={imageName}
             onChange={(e) => setImageName(e.target.value)}
             placeholder="My Wallet Backup"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
             disabled={isLoading}
           />
         </div>
@@ -192,7 +192,7 @@ export default function SteganographyBackup({
                   id="dataType"
                   value={dataType}
                   onChange={(e) => setDataType(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
                   disabled={isLoading}
                 >
                   <option value="wallet_backup">Full Wallet (Recommended)</option>
@@ -212,7 +212,7 @@ export default function SteganographyBackup({
                   onChange={(e) => setExpiresInDays(parseInt(e.target.value) || 0)}
                   min="0"
                   max="3650"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
                   disabled={isLoading}
                 />
                 <div className="text-xs text-gray-500 mt-1">

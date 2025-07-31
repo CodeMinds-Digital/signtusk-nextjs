@@ -144,7 +144,7 @@ export function imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
  */
 export async function hideDataInImage(
   data: string,
-  carrierImageFile?: File,
+  carrierImageFile?: File | Buffer,
   options: StegoOptions = {}
 ): Promise<StegoResult> {
   try {
@@ -158,9 +158,14 @@ export async function hideDataInImage(
     let carrierBuffer: Buffer;
 
     if (carrierImageFile) {
-      // Convert File to Buffer
-      const arrayBuffer = await carrierImageFile.arrayBuffer();
-      carrierBuffer = Buffer.from(arrayBuffer);
+      if (carrierImageFile instanceof Buffer) {
+        // Already a Buffer
+        carrierBuffer = carrierImageFile;
+      } else {
+        // Convert File to Buffer
+        const arrayBuffer = await carrierImageFile.arrayBuffer();
+        carrierBuffer = Buffer.from(arrayBuffer);
+      }
     } else {
       // Create a default carrier image buffer
       carrierBuffer = await createDefaultCarrierImageBuffer();
@@ -271,9 +276,41 @@ export async function createDefaultCarrierImageBuffer(): Promise<Buffer> {
     console.warn('Failed to load default carrier image, creating simple pattern');
   }
 
-  // Fallback: create a minimal PNG buffer
-  // This is a very basic implementation - in production you'd want a proper PNG library
-  throw new Error('Default carrier image creation not available in this environment');
+  // Fallback: create a PNG buffer using canvas
+  console.log('Creating fallback PNG image using canvas...');
+
+  try {
+    // Try to use canvas to create a proper PNG
+    const { createCanvas } = require('canvas');
+    const canvas = createCanvas(1200, 1200);
+    const ctx = canvas.getContext('2d');
+    
+    // Create a gradient background
+    const gradient = ctx.createRadialGradient(600, 600, 0, 600, 600, 600);
+    gradient.addColorStop(0, '#ff6b6b');
+    gradient.addColorStop(0.3, '#4ecdc4');
+    gradient.addColorStop(0.6, '#45b7d1');
+    gradient.addColorStop(1, '#96ceb4');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1200, 1200);
+    
+    // Add some noise for better steganography capacity
+    for (let i = 0; i < 5000; i++) {
+      const x = Math.random() * 1200;
+      const y = Math.random() * 1200;
+      const size = Math.random() * 2;
+      ctx.fillStyle = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.2)`;
+      ctx.fillRect(x, y, size, size);
+    }
+    
+    return canvas.toBuffer('image/png');
+  } catch (canvasError) {
+    console.error('Canvas fallback failed:', canvasError);
+    // Last resort: use a minimal 1x1 PNG
+    const minimalPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77zgAAAABJRU5ErkJggg==';
+    return Buffer.from(minimalPng, 'base64');
+  }
 }
 
 /**

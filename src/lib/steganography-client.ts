@@ -161,6 +161,7 @@ export async function extractFromSteganographicImage(
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         stegoImage: imageBase64,
         stegoKey,

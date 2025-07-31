@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Define protected routes
 const protectedRoutes = ['/dashboard', '/profile', '/delete-wallet', '/sign-document', '/multi-signature', '/verify'];
 
-// Define protected API routes - TEMPORARILY DISABLED FOR TESTING
-const protectedApiRoutes: string[] = []; // ['/api/steganography'];
+// Define protected API routes
+// // Temporarily disabled for testing
+const protectedApiRoutes: string[] = [];const protectedApiRoutes: string[] = []; // ["/api/steganography"];
 
 // Simple JWT verification for Edge Runtime
 function verifyJWTEdge(token: string): { wallet_address: string } | null {

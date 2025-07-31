@@ -1,5 +1,38 @@
 import { supabase } from './supabase-storage';
 
+/**
+ * Generate a custom ID for the wallet (15 characters)
+ * Format: 3 letters + 4 numbers + 4 letters + 4 numbers
+ */
+function generateCustomId(): string {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+
+  let customId = '';
+
+  // First 3 letters
+  for (let i = 0; i < 3; i++) {
+    customId += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+
+  // 4 numbers
+  for (let i = 0; i < 4; i++) {
+    customId += numbers.charAt(Math.floor(Math.random() * numbers.length));
+  }
+
+  // 4 letters
+  for (let i = 0; i < 4; i++) {
+    customId += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+
+  // 4 numbers
+  for (let i = 0; i < 4; i++) {
+    customId += numbers.charAt(Math.floor(Math.random() * numbers.length));
+  }
+
+  return customId; // Total: 15 characters
+}
+
 export interface UserProfile {
   id: string;
   custom_id: string;
@@ -41,7 +74,7 @@ export interface UserIdentity {
  * FIXED VERSION - Handles database function return types correctly
  */
 export class UserIdentityService {
-  
+
   /**
    * Create a new user with wallet (Sign-up)
    * This ensures custom_id and wallet_address are generated once and stored permanently
@@ -61,15 +94,54 @@ export class UserIdentityService {
         throw new Error('Wallet address already exists. Please use login instead.');
       }
 
-      // Call the database function to create user with wallet
-      const { data, error } = await supabase.rpc('create_user_with_wallet', {
-        p_wallet_address: walletAddress.toLowerCase(),
-        p_encrypted_private_key: encryptedPrivateKey,
-        p_encrypted_mnemonic: encryptedMnemonic,
-        p_salt: salt,
-        p_display_name: displayName,
-        p_email: email
-      });
+      // TEMPORARY WORKAROUND: Use direct SQL instead of function
+      // Generate custom ID
+      const customId = generateCustomId();
+
+      // Create user profile first
+      const { data: userProfile, error: userError } = await supabase
+        .from('user_profiles')
+        .insert({
+          custom_id: customId,
+          display_name: displayName,
+          email: email
+        })
+        .select('id')
+        .single();
+
+      if (userError) {
+        console.error('Error creating user profile:', userError);
+        throw new Error(`Failed to create user profile: ${userError.message}`);
+      }
+
+      // Create wallet
+      const { data: wallet, error: walletError } = await supabase
+        .from('wallets')
+        .insert({
+          user_profile_id: userProfile.id,
+          custom_id: customId,
+          wallet_address: walletAddress.toLowerCase(),
+          encrypted_private_key: encryptedPrivateKey,
+          encrypted_mnemonic: encryptedMnemonic,
+          salt: salt
+        })
+        .select('id')
+        .single();
+
+      if (walletError) {
+        console.error('Error creating wallet:', walletError);
+        // Clean up user profile if wallet creation fails
+        await supabase.from('user_profiles').delete().eq('id', userProfile.id);
+        throw new Error(`Failed to create wallet: ${walletError.message}`);
+      }
+
+      // Simulate the function return format
+      const data = [{
+        user_id: userProfile.id,
+        custom_id: customId,
+        wallet_address: walletAddress.toLowerCase()
+      }];
+      const error = null;
 
       if (error) {
         console.error('Error creating user with wallet:', error);
@@ -83,9 +155,9 @@ export class UserIdentityService {
       // FIXED: Handle the database function return correctly
       // The function returns a table, so data is an array of objects
       const result = Array.isArray(data) ? data[0] : data;
-      
+
       console.log('Database function result:', result);
-      
+
       // Return the complete user identity
       return {
         user_id: result.user_id,
@@ -125,7 +197,7 @@ export class UserIdentityService {
 
       // FIXED: Handle the database function return correctly
       const user = Array.isArray(data) ? data[0] : data;
-      
+
       return {
         user_id: user.user_id,
         custom_id: user.custom_id,
@@ -205,7 +277,7 @@ export class UserIdentityService {
    * Update user profile
    */
   static async updateUserProfile(
-    customId: string, 
+    customId: string,
     updates: { display_name?: string; email?: string }
   ): Promise<UserProfile> {
     try {
@@ -382,7 +454,7 @@ export class UserIdentityService {
   static async testCreateUserFunction(): Promise<any> {
     try {
       console.log('Testing create_user_with_wallet function...');
-      
+
       const { data, error } = await supabase.rpc('create_user_with_wallet', {
         p_wallet_address: '0xtest123456789012345678901234567890',
         p_encrypted_private_key: 'test_encrypted_key',
@@ -393,7 +465,7 @@ export class UserIdentityService {
       });
 
       console.log('Function test result:', { data, error });
-      
+
       if (error) {
         console.error('Function test error:', error);
         return { success: false, error };
