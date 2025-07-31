@@ -1,27 +1,27 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { signDocument, verifySignature } from '@/lib/signing';
 import { generateDocumentHash } from '@/lib/document';
-import { 
-  uploadFileToSupabase, 
-  downloadFileFromSupabase, 
+import {
+  uploadFileToSupabase,
+  downloadFileFromSupabase,
   uploadBlobToSupabase,
-  getPublicUrl 
+  getPublicUrl
 } from '@/lib/supabase-storage';
-import { 
-  insertSignaturesIntoPDF, 
-  createSignatureData, 
+import {
+  insertSignaturesIntoPDF,
+  createSignatureData,
   createStampData,
   validatePDFForSigning,
-  SignatureData 
+  SignatureData
 } from '@/lib/pdf-signature-insert';
-import { 
-  DocumentDatabase, 
-  AuditLogger, 
-  DocumentRecord, 
-  SignatureRecord 
+import {
+  DocumentDatabase,
+  AuditLogger,
+  DocumentRecord,
+  SignatureRecord
 } from '@/lib/database';
 
 interface DocumentMetadata {
@@ -111,7 +111,7 @@ export default function IntegratedDocumentSigningComplete() {
       setUploadedPath(uploadPath);
       setPreviewUrl(publicUrl || '');
       setCurrentStep('preview');
-      
+
       console.log('Document uploaded successfully to:', uploadPath);
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -185,7 +185,7 @@ export default function IntegratedDocumentSigningComplete() {
 
       // Trigger signature insertion
       await insertSignatureIntoPDF();
-      
+
     } catch (error) {
       console.error('Error in accept flow:', error);
       alert('Failed to process document. Please try again.');
@@ -230,7 +230,7 @@ export default function IntegratedDocumentSigningComplete() {
       );
 
       setCurrentStep('rejected');
-      
+
     } catch (error) {
       console.error('Error rejecting document:', error);
       alert('Failed to reject document. Please try again.');
@@ -248,7 +248,7 @@ export default function IntegratedDocumentSigningComplete() {
     try {
       // Download the original PDF from Supabase
       const { data: pdfBlob, error } = await downloadFileFromSupabase('documents', uploadedPath);
-      
+
       if (error || !pdfBlob) {
         throw new Error('Failed to download PDF from Supabase');
       }
@@ -268,8 +268,8 @@ export default function IntegratedDocumentSigningComplete() {
 
       // Insert signatures using sign_insert logic
       const signedPdfBytes = await insertSignaturesIntoPDF(
-        pdfBytes, 
-        [signatureData], 
+        pdfBytes,
+        [signatureData],
         stampData
       );
 
@@ -334,10 +334,10 @@ export default function IntegratedDocumentSigningComplete() {
 
       // Load updated documents
       await loadSignedDocuments();
-      
+
       setCurrentStep('complete');
       console.log('Document signing process completed, waiting for Node.js service to mark as completed');
-      
+
     } catch (error) {
       console.error('Error inserting signature:', error);
       throw error;
@@ -367,7 +367,7 @@ export default function IntegratedDocumentSigningComplete() {
 
       const result = await response.json();
       console.log('Document marked as completed by Node.js service:', result);
-      
+
     } catch (error) {
       console.error('Error calling Node.js completion service:', error);
       // Don't throw error - this is not critical for user experience
@@ -426,7 +426,7 @@ export default function IntegratedDocumentSigningComplete() {
     const steps: WorkflowStep[] = ['upload', 'preview', 'accept', 'sign', 'complete'];
     const currentIndex = steps.indexOf(currentStep);
     const stepIndex = steps.indexOf(step);
-    
+
     if (stepIndex < currentIndex) return 'completed';
     if (stepIndex === currentIndex) return 'current';
     return 'pending';
@@ -493,27 +493,24 @@ export default function IntegratedDocumentSigningComplete() {
               const stepStatus = getStepStatus(step as WorkflowStep);
               return (
                 <div key={step} className="flex items-center">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${
-                    stepStatus === 'completed' ? 'bg-green-500 border-green-500 text-white' :
-                    stepStatus === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
-                    'bg-gray-600 border-gray-600 text-gray-300'
-                  }`}>
+                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${stepStatus === 'completed' ? 'bg-green-500 border-green-500 text-white' :
+                      stepStatus === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
+                        'bg-gray-600 border-gray-600 text-gray-300'
+                    }`}>
                     <span className="text-lg">{icon}</span>
                   </div>
                   <div className="ml-3">
-                    <p className={`font-semibold text-sm ${
-                      stepStatus === 'completed' ? 'text-green-400' :
-                      stepStatus === 'current' ? 'text-purple-400' :
-                      'text-gray-400'
-                    }`}>
+                    <p className={`font-semibold text-sm ${stepStatus === 'completed' ? 'text-green-400' :
+                        stepStatus === 'current' ? 'text-purple-400' :
+                          'text-gray-400'
+                      }`}>
                       {label}
                     </p>
                     <p className="text-xs text-gray-500">{status}</p>
                   </div>
                   {index < 4 && (
-                    <div className={`w-16 h-0.5 mx-4 ${
-                      stepStatus === 'completed' ? 'bg-green-500' : 'bg-gray-600'
-                    }`} />
+                    <div className={`w-16 h-0.5 mx-4 ${stepStatus === 'completed' ? 'bg-green-500' : 'bg-gray-600'
+                      }`} />
                   )}
                 </div>
               );
@@ -546,7 +543,7 @@ export default function IntegratedDocumentSigningComplete() {
                   accept=".pdf"
                   disabled={isProcessing}
                 />
-                
+
                 {selectedFile && (
                   <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
                     <p className="text-white font-semibold">{selectedFile.name}</p>
@@ -604,7 +601,7 @@ export default function IntegratedDocumentSigningComplete() {
                     Open in New Tab
                   </a>
                 </div>
-                
+
                 <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                   <iframe
                     src={previewUrl}
@@ -621,7 +618,7 @@ export default function IntegratedDocumentSigningComplete() {
 
               <div className="bg-white/5 rounded-lg border border-white/10 p-6 space-y-4">
                 <h4 className="text-lg font-semibold text-white">Document Metadata</h4>
-                
+
                 <div>
                   <label className="block text-white font-semibold mb-2">Title</label>
                   <input
@@ -898,7 +895,7 @@ export default function IntegratedDocumentSigningComplete() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex space-x-3">
                     {doc.public_url && (
                       <a

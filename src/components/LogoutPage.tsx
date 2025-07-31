@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 
 export default function LogoutPage() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function LogoutPage() {
   useEffect(() => {
     // Ensure logout is called when this page loads
     logout();
-    
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -45,9 +45,9 @@ export default function LogoutPage() {
         <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
           <span className="text-white text-3xl">👋</span>
         </div>
-        
+
         <h2 className="text-2xl font-bold mb-4 text-white">Successfully Logged Out</h2>
-        
+
         <p className="text-gray-300 mb-6 leading-relaxed">
           You have been securely logged out of SignTusk. Your signing identity remains encrypted and safe on your device.
         </p>

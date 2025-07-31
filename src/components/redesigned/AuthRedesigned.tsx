@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Card, SecurityCard } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { SecurityIcons, SecurityLevelBadge, LoadingSpinner } from '../ui/DesignSystem';
-import { decryptWallet, getRandomWordsForVerification, verifyMnemonicWords, getChecksumAddress, WalletData } from '@/lib/wallet';
-import { getEncryptedWallet, getStoredWalletList, setCurrentWalletAddress, removeStoredWallet } from '@/lib/multi-wallet-storage';
-import { getAuthChallenge, verifySignature } from '@/lib/storage';
-import { useWallet } from '@/contexts/WalletContext';
+import { decryptWallet, getRandomWordsForVerification, verifyMnemonicWords, getChecksumAddress, WalletData, generateWallet, encryptWallet } from '@/lib/wallet';
+import { getEncryptedWallet, getStoredWalletList, setCurrentWalletAddress, removeStoredWallet, storeEncryptedWallet } from '@/lib/multi-wallet-storage';
+import { getAuthChallenge, verifySignature, createWalletInDatabase } from '@/lib/storage';
+import { syncStoredWalletIds } from '@/lib/wallet-id-sync';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { Wallet } from 'ethers';
 
 interface FormInputProps {
@@ -78,7 +79,7 @@ interface LoginRedesignedProps {
 }
 
 export const LoginRedesigned: React.FC<LoginRedesignedProps> = ({ onSuccess }) => {
-  const { setWallet, refreshAuth } = useWallet();
+  const { setWallet, refreshAuth, wallet, currentUser } = useWallet();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<LoginStep>('wallet-select');
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string>('');
@@ -91,10 +92,42 @@ export const LoginRedesigned: React.FC<LoginRedesignedProps> = ({ onSuccess }) =
   const [storedWallets, setStoredWallets] = useState<Array<{ address: string, customId: string }>>([]);
 
   useEffect(() => {
-    // Load stored wallets
-    const wallets = getStoredWalletList();
-    setStoredWallets(wallets);
+    // Load and sync stored wallets with database IDs
+    const loadAndSyncWallets = async () => {
+      try {
+        // First load stored wallets
+        const wallets = getStoredWalletList();
+        setStoredWallets(wallets);
+
+        // Then sync with database and update if needed
+        const syncedWallets = await syncStoredWalletIds();
+        setStoredWallets(syncedWallets);
+      } catch (error) {
+        console.error('Failed to sync wallet IDs:', error);
+        // Fallback to stored wallets
+        const wallets = getStoredWalletList();
+        setStoredWallets(wallets);
+      }
+    };
+
+    loadAndSyncWallets();
   }, []);
+
+  // Refresh wallet list when wallet context changes (after auto-sync)
+  useEffect(() => {
+    const refreshWalletList = () => {
+      const wallets = getStoredWalletList();
+      setStoredWallets(wallets);
+    };
+
+    // Refresh immediately
+    refreshWalletList();
+
+    // Also refresh after a short delay to catch any async updates
+    const timeoutId = setTimeout(refreshWalletList, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [wallet, currentUser]);
 
   const handleWalletSelect = (address: string) => {
     setSelectedWalletAddress(address);
@@ -418,20 +451,28 @@ interface SignupRedesignedProps {
 }
 
 export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess }) => {
+  const { setWallet } = useWallet();
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<'security' | 'identity' | 'backup' | 'complete'>('security');
-  const [selectedSecurity, setSelectedSecurity] = useState<'standard' | 'enhanced' | 'maximum'>('enhanced');
-  const [customId, setCustomId] = useState('');
+  // Skip security selection and go directly to identity creation with enhanced security
+  const [currentStep, setCurrentStep] = useState<'identity' | 'backup' | 'complete'>('identity');
+  const [selectedSecurity] = useState<'standard' | 'enhanced' | 'maximum'>('enhanced');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [mnemonicWords, setMnemonicWords] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [verificationWords, setVerificationWords] = useState<Array<{ index: number, word: string }>>([]);
+  const [userVerificationInputs, setUserVerificationInputs] = useState<string[]>([]);
 
-  const handleSecuritySelect = (level: 'standard' | 'enhanced' | 'maximum') => {
-    setSelectedSecurity(level);
-    setCurrentStep('identity');
-  };
+  // Auto-complete signup when reaching complete step
+  useEffect(() => {
+    if (currentStep === 'complete' && walletData && !isLoading) {
+      handleComplete();
+    }
+  }, [currentStep, walletData]);
+
+
 
   const handleIdentitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,13 +487,10 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
 
     setIsLoading(true);
     try {
-      // Simulate wallet generation
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const mockMnemonic = [
-        'abandon', 'ability', 'able', 'about', 'above', 'absent',
-        'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident'
-      ];
-      setMnemonicWords(mockMnemonic);
+      // Generate real BIP39 wallet with truly random mnemonic
+      const newWallet = generateWallet(12); // Generate 12-word mnemonic
+      setWalletData(newWallet);
+      setMnemonicWords(newWallet.mnemonic.split(' '));
       setCurrentStep('backup');
     } catch (err) {
       setError('Failed to create identity. Please try again.');
@@ -469,6 +507,53 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
     }, 2000);
   };
 
+  const handleBackupConfirm = () => {
+    if (!walletData) return;
+    // Generate random words for verification
+    const randomWords = getRandomWordsForVerification(walletData.mnemonic);
+    setVerificationWords(randomWords);
+    setUserVerificationInputs(new Array(randomWords.length).fill(''));
+    setCurrentStep('complete');
+  };
+
+  const handleComplete = async () => {
+    if (!walletData) return;
+
+    setIsLoading(true);
+    try {
+      // Encrypt and store wallet locally
+      const encryptedWallet = encryptWallet(walletData, password);
+      storeEncryptedWallet(encryptedWallet);
+
+      // Store wallet in database
+      await createWalletInDatabase(
+        walletData.address,
+        encryptedWallet.encryptedPrivateKey
+      );
+
+      // Authenticate user
+      const nonce = await getAuthChallenge(walletData.address);
+      const wallet = new Wallet(walletData.privateKey);
+      const signature = await wallet.signMessage(nonce);
+      await verifySignature(walletData.address, signature);
+
+      // Set wallet in context
+      setWallet(walletData);
+
+      // Redirect to dashboard
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err) {
+      console.error('Signup completion error:', err);
+      setError('Failed to complete signup. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
@@ -481,97 +566,17 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
           <p className="text-neutral-400">Set up your secure signing identity with SignTusk</p>
         </div>
 
-        {/* Security Level Selection */}
-        {currentStep === 'security' && (
-          <Card variant="glass" padding="lg">
-            <h2 className="text-xl font-semibold text-white mb-6">Choose Security Level</h2>
 
-            <div className="space-y-4">
-              <SecurityCard
-                title="Standard Security"
-                description="Basic encryption with password protection"
-                icon={<SecurityIcons.Lock className="w-6 h-6 text-yellow-400" />}
-                securityLevel="standard"
-                hover
-                className="cursor-pointer"
-                onClick={() => handleSecuritySelect('standard')}
-              >
-                <div className="text-sm text-neutral-400 mt-2">
-                  • AES-CBC encryption
-                  • 10,000 PBKDF2 iterations
-                  • Standard security features
-                </div>
-              </SecurityCard>
-
-              <SecurityCard
-                title="Enhanced Security"
-                description="Advanced encryption with Web Crypto API"
-                icon={<SecurityIcons.Shield className="w-6 h-6 text-blue-400" />}
-                securityLevel="enhanced"
-                hover
-                className="cursor-pointer border-2 border-primary-500/50"
-                onClick={() => handleSecuritySelect('enhanced')}
-              >
-                <div className="text-sm text-neutral-400 mt-2">
-                  • AES-GCM encryption
-                  • 310,000 PBKDF2 iterations
-                  • Enhanced security features
-                </div>
-                <div className="mt-2">
-                  <span className="text-xs bg-primary-500/20 text-primary-300 px-2 py-1 rounded-full">
-                    Recommended
-                  </span>
-                </div>
-              </SecurityCard>
-
-              <SecurityCard
-                title="Maximum Security"
-                description="Military-grade encryption with steganography"
-                icon={<SecurityIcons.Verified className="w-6 h-6 text-green-400" />}
-                securityLevel="maximum"
-                hover
-                className="cursor-pointer"
-                onClick={() => handleSecuritySelect('maximum')}
-              >
-                <div className="text-sm text-neutral-400 mt-2">
-                  • AES-GCM + Steganography
-                  • 310,000 PBKDF2 iterations
-                  • Maximum security features
-                </div>
-              </SecurityCard>
-            </div>
-          </Card>
-        )}
 
         {/* Identity Creation */}
         {currentStep === 'identity' && (
           <Card variant="glass" padding="lg">
-            <div className="flex items-center mb-6">
-              <button
-                onClick={() => setCurrentStep('security')}
-                className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 mr-3"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div>
-                <h2 className="text-xl font-semibold text-white">Create Identity</h2>
-                <SecurityLevelBadge level={selectedSecurity} />
-              </div>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-white">Create Identity</h2>
+              <SecurityLevelBadge level={selectedSecurity} />
             </div>
 
             <form onSubmit={handleIdentitySubmit} className="space-y-6">
-              <FormInput
-                label="Custom Identity ID"
-                value={customId}
-                onChange={setCustomId}
-                placeholder="e.g., SIGN-001"
-                required
-                icon={<SecurityIcons.Fingerprint className="w-5 h-5 text-neutral-400" />}
-                securityLevel={selectedSecurity}
-              />
-
               <FormInput
                 label="Password"
                 type="password"
@@ -599,7 +604,7 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
                 type="submit"
                 fullWidth
                 loading={isLoading}
-                disabled={!customId || !password || !confirmPassword}
+                disabled={!password || !confirmPassword}
               >
                 {isLoading ? 'Creating Identity...' : 'Create Identity'}
               </Button>
@@ -644,7 +649,7 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
             </div>
 
             <Button
-              onClick={handleBackupComplete}
+              onClick={handleBackupConfirm}
               fullWidth
               variant="success"
             >
@@ -663,8 +668,23 @@ export const SignupRedesigned: React.FC<SignupRedesignedProps> = ({ onSuccess })
             <p className="text-neutral-300 mb-6">
               Your secure signing identity has been created with {selectedSecurity} security level.
             </p>
-            <LoadingSpinner size="md" />
-            <p className="text-neutral-400 text-sm mt-2">Redirecting to dashboard...</p>
+            {isLoading ? (
+              <>
+                <LoadingSpinner size="md" />
+                <p className="text-neutral-400 text-sm mt-2">Setting up your account...</p>
+              </>
+            ) : (
+              <Button
+                onClick={handleComplete}
+                fullWidth
+                variant="primary"
+              >
+                Continue to Dashboard
+              </Button>
+            )}
+            {error && (
+              <p className="text-red-400 text-sm mt-4">{error}</p>
+            )}
           </Card>
         )}
 

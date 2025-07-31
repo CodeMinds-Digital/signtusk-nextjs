@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { VerifyRedesigned } from '@/components/redesigned/VerifyRedesigned';
 import { LoadingSpinner } from '@/components/ui/DesignSystem';
 

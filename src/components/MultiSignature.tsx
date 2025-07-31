@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { signDocument, verifySignature } from '@/lib/signing';
 import { generateDocumentHash } from '@/lib/document';
 

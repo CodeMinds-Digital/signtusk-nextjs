@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { signDocument, verifySignature } from '@/lib/signing';
 import { generateDocumentHash, validateFile } from '@/lib/document';
-import { 
-  generateSignedPDF, 
-  downloadSignedPDF, 
+import {
+  generateSignedPDF,
+  downloadSignedPDF,
   validatePDFFile,
   createVerificationQRData,
-  SignatureData 
+  SignatureData
 } from '@/lib/pdf-signature';
 
 interface DocumentMetadata {
@@ -88,7 +88,7 @@ export default function DocumentSigning() {
       setDocumentId(result.document.id);
       setPdfPreviewUrl(result.preview_url);
       setCurrentStep('preview');
-      
+
     } catch (error) {
       console.error('Error uploading document:', error);
       alert(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -135,7 +135,7 @@ export default function DocumentSigning() {
         }
         alert('Document rejected. You can upload a new document.');
       }
-      
+
     } catch (error) {
       console.error(`Error ${action}ing document:`, error);
       alert(`Failed to ${action} document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -172,12 +172,12 @@ export default function DocumentSigning() {
       const result = await response.json();
       setCurrentStep('complete');
       await loadSignedDocuments();
-      
+
       alert(`Document signed successfully! 
       
 Original document: ${result.download_urls.original}
 Signed document: ${result.download_urls.signed}`);
-      
+
     } catch (error) {
       console.error('Error signing document:', error);
       alert(`Failed to sign document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -403,31 +403,28 @@ Signed document: ${result.download_urls.signed}`);
           <div className="flex border-b border-white/20">
             <button
               onClick={() => setActiveTab('sign')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'sign'
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'sign'
                   ? 'text-white border-b-2 border-purple-500 bg-white/5'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               Sign Document
             </button>
             <button
               onClick={() => setActiveTab('verify')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'verify'
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'verify'
                   ? 'text-white border-b-2 border-purple-500 bg-white/5'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               Verify Document
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'history'
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'history'
                   ? 'text-white border-b-2 border-purple-500 bg-white/5'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               History
             </button>
@@ -586,22 +583,20 @@ Signed document: ${result.download_urls.signed}`);
                 </div>
 
                 {verificationResult && (
-                  <div className={`p-6 rounded-lg border ${
-                    verificationResult.isValid 
-                      ? 'bg-green-500/10 border-green-500/30' 
+                  <div className={`p-6 rounded-lg border ${verificationResult.isValid
+                      ? 'bg-green-500/10 border-green-500/30'
                       : 'bg-red-500/10 border-red-500/30'
-                  }`}>
+                    }`}>
                     <div className="flex items-center mb-4">
                       <span className="text-2xl mr-3">
                         {verificationResult.isValid ? '✅' : '❌'}
                       </span>
-                      <h4 className={`text-xl font-bold ${
-                        verificationResult.isValid ? 'text-green-300' : 'text-red-300'
-                      }`}>
+                      <h4 className={`text-xl font-bold ${verificationResult.isValid ? 'text-green-300' : 'text-red-300'
+                        }`}>
                         {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
                       </h4>
                     </div>
-                    
+
                     {verificationResult.details && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
                         <div>
@@ -657,7 +652,7 @@ Signed document: ${result.download_urls.signed}`);
                             <p className="text-gray-400 text-sm">Size: {formatFileSize(doc.fileSize)}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex space-x-3">
                           {(doc as any).signedPdfUrl && (
                             <a
@@ -678,7 +673,7 @@ Signed document: ${result.download_urls.signed}`);
                         </div>
                       </div>
                     ))}
-                    
+
                     {signedDocuments.length > 5 && (
                       <div className="text-center">
                         <button

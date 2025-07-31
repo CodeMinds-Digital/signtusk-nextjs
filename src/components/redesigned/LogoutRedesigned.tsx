@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { SecurityIcons, LoadingSpinner } from '../ui/DesignSystem';
@@ -67,9 +67,9 @@ export const LogoutRedesigned: React.FC = () => {
           <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <LoadingSpinner size="lg" />
           </div>
-          
+
           <h2 className="text-2xl font-bold text-white mb-4">Signing Out...</h2>
-          
+
           <p className="text-neutral-300 mb-6">
             Securely clearing your session and protecting your identity.
           </p>
@@ -100,9 +100,9 @@ export const LogoutRedesigned: React.FC = () => {
         <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 trust-glow">
           <SecurityIcons.Verified className="w-10 h-10 text-green-400" />
         </div>
-        
+
         <h2 className="text-2xl font-bold text-white mb-4">Successfully Signed Out</h2>
-        
+
         <p className="text-neutral-300 mb-6 leading-relaxed">
           You have been securely signed out of SignTusk. Your signing identity remains encrypted and protected on your device.
         </p>
@@ -149,7 +149,7 @@ export const LogoutRedesigned: React.FC = () => {
           >
             Return to Homepage
           </Button>
-          
+
           <Button
             onClick={handleSignInAgain}
             variant="outline"

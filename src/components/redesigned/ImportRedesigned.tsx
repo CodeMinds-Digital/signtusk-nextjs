@@ -9,7 +9,7 @@ import { restoreWalletFromMnemonic, encryptWallet, validateMnemonic, getChecksum
 import { storeEncryptedWallet } from '@/lib/multi-wallet-storage';
 import { getAuthChallenge, verifySignature } from '@/lib/storage';
 import { Wallet } from 'ethers';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 
 interface FormInputProps {
   label: string;
@@ -72,7 +72,7 @@ const FormInput: React.FC<FormInputProps> = ({
 };
 
 export const ImportRedesigned: React.FC = () => {
-  const { setWallet } = useWallet();
+  const { setWallet, getSignerId } = useWallet();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<'method' | 'mnemonic' | 'keystore' | 'private-key' | 'complete'>('method');
   const [importMethod, setImportMethod] = useState<'mnemonic' | 'keystore' | 'private-key'>('mnemonic');
@@ -88,7 +88,6 @@ export const ImportRedesigned: React.FC = () => {
 
   // Private key import
   const [privateKey, setPrivateKey] = useState('');
-  const [customId, setCustomId] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -194,7 +193,7 @@ export const ImportRedesigned: React.FC = () => {
         address: getChecksumAddress(wallet.address),
         privateKey: wallet.privateKey,
         mnemonic: '', // Keystore doesn't contain mnemonic
-        customId: keystoreData.customId || `IMPORTED-${Date.now()}`,
+        customId: `IMPORTED-${Date.now()}`, // Temporary ID for local storage
       };
 
       // Encrypt and store wallet
@@ -216,7 +215,7 @@ export const ImportRedesigned: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!privateKey || !password || !customId) {
+    if (!privateKey || !password) {
       setError('Please fill in all required fields');
       return;
     }
@@ -235,7 +234,7 @@ export const ImportRedesigned: React.FC = () => {
         address: getChecksumAddress(wallet.address),
         privateKey: wallet.privateKey,
         mnemonic: '', // Private key import doesn't have mnemonic
-        customId: customId,
+        customId: `IMPORTED-${Date.now()}`, // Temporary ID for local storage
       };
 
       // Encrypt and store wallet
@@ -506,16 +505,6 @@ export const ImportRedesigned: React.FC = () => {
               />
 
               <FormInput
-                label="Custom Identity ID"
-                value={customId}
-                onChange={setCustomId}
-                placeholder="e.g., SIGN-001"
-                required
-                icon={<SecurityIcons.Key className="w-5 h-5 text-neutral-400" />}
-                securityLevel="maximum"
-              />
-
-              <FormInput
                 label="New Password"
                 type="password"
                 value={password}
@@ -543,7 +532,7 @@ export const ImportRedesigned: React.FC = () => {
                 type="submit"
                 fullWidth
                 loading={isLoading}
-                disabled={!privateKey || !password || !customId}
+                disabled={!privateKey || !password}
                 variant="danger"
               >
                 {isLoading ? 'Importing Private Key...' : 'Import Private Key'}
@@ -566,10 +555,10 @@ export const ImportRedesigned: React.FC = () => {
               <div className="bg-neutral-800/50 rounded-xl p-4 mb-6">
                 <p className="text-sm text-neutral-400 mb-1">Address:</p>
                 <p className="text-white font-mono text-sm">{importedWallet.address}</p>
-                {importedWallet.customId && (
+                {getSignerId() && (
                   <>
                     <p className="text-sm text-neutral-400 mb-1 mt-2">Custom ID:</p>
-                    <p className="text-white font-medium">{importedWallet.customId}</p>
+                    <p className="text-white font-medium">{getSignerId()}</p>
                   </>
                 )}
               </div>

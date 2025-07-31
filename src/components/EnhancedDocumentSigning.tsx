@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { signDocument, verifySignature } from '@/lib/signing';
 import { generateDocumentHash, validateFile } from '@/lib/document';
-import { 
-  generateSignedPDF, 
-  downloadSignedPDF, 
+import {
+  generateSignedPDF,
+  downloadSignedPDF,
   validatePDFFile,
   createVerificationQRData,
-  SignatureData 
+  SignatureData
 } from '@/lib/pdf-signature';
 
 interface DocumentMetadata {
@@ -36,7 +36,7 @@ interface SignedDocument {
 type WorkflowStep = 'upload' | 'metadata' | 'hash' | 'sign' | 'store' | 'complete';
 
 export default function EnhancedDocumentSigning() {
-  const { wallet } = useWallet();
+  const { wallet, getSignerId } = useWallet();
   const [activeTab, setActiveTab] = useState<'create' | 'verify' | 'documents'>('create');
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -128,10 +128,15 @@ export default function EnhancedDocumentSigning() {
     setIsProcessing(true);
     try {
       // Create signature data for PDF generation
+      const signerId = getSignerId();
+      if (!signerId) {
+        throw new Error('Unable to get signer ID');
+      }
+
       const signatureData: SignatureData = {
-        id: wallet.customId,
-        signerName: documentMetadata.signerInfo || wallet.customId,
-        signerId: wallet.customId,
+        id: signerId,
+        signerName: documentMetadata.signerInfo || signerId,
+        signerId: signerId,
         signature,
         timestamp: new Date().toISOString()
       };
@@ -152,7 +157,7 @@ export default function EnhancedDocumentSigning() {
         documentHash,
         signature,
         signerAddress: wallet.address,
-        signerId: wallet.customId,
+        signerId: signerId,
         timestamp: new Date().toISOString(),
         fileSize: selectedFile.size,
         fileType: selectedFile.type,
@@ -165,7 +170,7 @@ export default function EnhancedDocumentSigning() {
       const existingDocs = JSON.parse(localStorage.getItem('signedDocuments') || '[]');
       existingDocs.push(signedDoc);
       localStorage.setItem('signedDocuments', JSON.stringify(existingDocs));
-      
+
       setSignedDocuments(existingDocs);
       setCurrentStep('complete');
     } catch (error) {
@@ -201,13 +206,13 @@ export default function EnhancedDocumentSigning() {
     setIsProcessing(true);
     try {
       const hash = await generateDocumentHash(file);
-      
+
       // Check if this document exists in our signed documents
       const existingDocs = JSON.parse(localStorage.getItem('signedDocuments') || '[]');
-      const matchingDoc = existingDocs.find((doc: SignedDocument) => 
+      const matchingDoc = existingDocs.find((doc: SignedDocument) =>
         doc.documentHash === hash
       );
-      
+
       if (matchingDoc) {
         const isValid = await verifySignature(hash, matchingDoc.signature, matchingDoc.signerAddress);
         setVerificationResult({
@@ -259,7 +264,7 @@ export default function EnhancedDocumentSigning() {
     const steps: WorkflowStep[] = ['upload', 'metadata', 'hash', 'sign', 'store', 'complete'];
     const currentIndex = steps.indexOf(currentStep);
     const stepIndex = steps.indexOf(step);
-    
+
     if (stepIndex < currentIndex) return 'completed';
     if (stepIndex === currentIndex) return 'current';
     return 'pending';
@@ -306,31 +311,28 @@ export default function EnhancedDocumentSigning() {
           <div className="flex border-b border-white/20">
             <button
               onClick={() => setActiveTab('create')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'create'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'create'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Create New Document
             </button>
             <button
               onClick={() => setActiveTab('verify')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'verify'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'verify'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               Verify Document
             </button>
             <button
               onClick={() => setActiveTab('documents')}
-              className={`px-6 py-4 font-semibold transition-all duration-200 ${
-                activeTab === 'documents'
-                  ? 'text-white border-b-2 border-purple-500 bg-white/5'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-4 font-semibold transition-all duration-200 ${activeTab === 'documents'
+                ? 'text-white border-b-2 border-purple-500 bg-white/5'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               My Documents
             </button>
@@ -353,26 +355,23 @@ export default function EnhancedDocumentSigning() {
                     const status = getStepStatus(step as WorkflowStep);
                     return (
                       <div key={step} className="flex items-center">
-                        <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${
-                          status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
+                        <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
                           status === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
-                          'bg-gray-600 border-gray-600 text-gray-300'
-                        }`}>
+                            'bg-gray-600 border-gray-600 text-gray-300'
+                          }`}>
                           <span className="text-lg">{icon}</span>
                         </div>
                         <div className="ml-3">
-                          <p className={`font-semibold ${
-                            status === 'completed' ? 'text-green-400' :
+                          <p className={`font-semibold ${status === 'completed' ? 'text-green-400' :
                             status === 'current' ? 'text-purple-400' :
-                            'text-gray-400'
-                          }`}>
+                              'text-gray-400'
+                            }`}>
                             {label}
                           </p>
                         </div>
                         {index < 5 && (
-                          <div className={`w-16 h-0.5 mx-4 ${
-                            status === 'completed' ? 'bg-green-500' : 'bg-gray-600'
-                          }`} />
+                          <div className={`w-16 h-0.5 mx-4 ${status === 'completed' ? 'bg-green-500' : 'bg-gray-600'
+                            }`} />
                         )}
                       </div>
                     );
@@ -401,7 +400,7 @@ export default function EnhancedDocumentSigning() {
                         className="block w-full text-gray-300 bg-white/10 border border-white/20 rounded-lg p-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
                         accept=".pdf,.doc,.docx,.txt"
                       />
-                      
+
                       {selectedFile && (
                         <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
                           <p className="text-white font-semibold">{selectedFile.name}</p>
@@ -482,7 +481,7 @@ export default function EnhancedDocumentSigning() {
                           <span className="text-green-400 text-sm">✅ Generated</span>
                         )}
                       </div>
-                      
+
                       {documentHash ? (
                         <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                           <p className="font-mono text-xs text-gray-300 break-all">{documentHash}</p>
@@ -563,7 +562,7 @@ export default function EnhancedDocumentSigning() {
                         <h4 className="text-xl font-bold text-green-300">Document Successfully Stored</h4>
                       </div>
                       <p className="text-gray-300">
-                        Your document has been cryptographically signed and stored securely. 
+                        Your document has been cryptographically signed and stored securely.
                         A confirmation message is displayed with timestamp, file reference, and signature metadata.
                       </p>
                     </div>
@@ -670,29 +669,27 @@ export default function EnhancedDocumentSigning() {
                 </div>
 
                 {verificationResult && (
-                  <div className={`p-6 rounded-lg border ${
-                    verificationResult.isValid 
-                      ? 'bg-green-500/10 border-green-500/30' 
-                      : 'bg-red-500/10 border-red-500/30'
-                  }`}>
+                  <div className={`p-6 rounded-lg border ${verificationResult.isValid
+                    ? 'bg-green-500/10 border-green-500/30'
+                    : 'bg-red-500/10 border-red-500/30'
+                    }`}>
                     <div className="flex items-center mb-4">
                       <span className="text-2xl mr-3">
                         {verificationResult.isValid ? '✅' : '❌'}
                       </span>
-                      <h4 className={`text-xl font-bold ${
-                        verificationResult.isValid ? 'text-green-300' : 'text-red-300'
-                      }`}>
+                      <h4 className={`text-xl font-bold ${verificationResult.isValid ? 'text-green-300' : 'text-red-300'
+                        }`}>
                         {verificationResult.isValid ? 'Signature Valid' : 'Signature Invalid'}
                       </h4>
                     </div>
-                    
+
                     {verificationResult.details && (
                       <div className="space-y-2 text-sm">
                         <p className="text-gray-300">
                           <span className="font-semibold">Document:</span> {verificationResult.details.fileName}
                         </p>
                         <p className="text-gray-300">
-                          <span className="font-semibold">Hash:</span> 
+                          <span className="font-semibold">Hash:</span>
                           <span className="font-mono text-xs ml-2">{verificationResult.details.documentHash}</span>
                         </p>
                         <p className="text-gray-300">
@@ -708,7 +705,7 @@ export default function EnhancedDocumentSigning() {
                         )}
                       </div>
                     )}
-                    
+
                     {verificationResult.error && (
                       <p className="text-red-300">{verificationResult.error}</p>
                     )}
@@ -758,7 +755,7 @@ export default function EnhancedDocumentSigning() {
                             <p className="text-gray-400 text-sm">Type: {doc.fileType}</p>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2 text-sm mb-4">
                           <div>
                             <span className="text-gray-400">Document Hash:</span>
@@ -775,7 +772,7 @@ export default function EnhancedDocumentSigning() {
                             ✅ Verify
                           </button>
                           {doc.signedPdfBlob && (
-                            <button 
+                            <button
                               onClick={() => downloadSignedPDF(doc.signedPdfBlob!, `signed_${doc.fileName}`)}
                               className="bg-blue-500/20 text-blue-300 px-4 py-2 rounded-lg hover:bg-blue-500/30 transition-all duration-200 border border-blue-500/30 text-sm"
                             >

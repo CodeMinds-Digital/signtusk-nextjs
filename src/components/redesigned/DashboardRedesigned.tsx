@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/WalletContext-Updated';
 import { Navigation } from '../ui/Navigation';
 import { Card, DocumentCard, SecurityCard } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -18,7 +18,7 @@ interface Document {
 }
 
 export const DashboardRedesigned: React.FC = () => {
-  const { wallet } = useWallet();
+  const { wallet, getSignerId } = useWallet();
   const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [stats, setStats] = useState({
@@ -103,7 +103,7 @@ export const DashboardRedesigned: React.FC = () => {
       <Navigation
         currentPage="dashboard"
         userInfo={{
-          customId: wallet.customId,
+          customId: getSignerId() || wallet.customId,
           address: wallet.address
         }}
         onLogout={handleLogout}
