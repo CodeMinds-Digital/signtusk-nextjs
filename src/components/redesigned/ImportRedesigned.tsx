@@ -74,8 +74,8 @@ const FormInput: React.FC<FormInputProps> = ({
 export const ImportRedesigned: React.FC = () => {
   const { setWallet } = useWallet();
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<'method' | 'mnemonic' | 'keystore' | 'private-key' | 'complete'>('method');
-  const [importMethod, setImportMethod] = useState<'mnemonic' | 'keystore' | 'private-key'>('mnemonic');
+  const [currentStep, setCurrentStep] = useState<'method' | 'mnemonic' | 'keystore' | 'private-key' | 'steganography' | 'complete'>('method');
+  const [importMethod, setImportMethod] = useState<'mnemonic' | 'keystore' | 'private-key' | 'steganography'>('mnemonic');
 
   // Mnemonic import
   const [mnemonic, setMnemonic] = useState('');
@@ -90,10 +90,15 @@ export const ImportRedesigned: React.FC = () => {
   const [privateKey, setPrivateKey] = useState('');
   const [customId, setCustomId] = useState('');
 
+  // Steganography import
+  const [stegoImage, setStegoImage] = useState<File | null>(null);
+  const [stegoKey, setStegoKey] = useState('');
+  const [stegoPassword, setStegoPassword] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [importedWallet, setImportedWallet] = useState<WalletData | null>(null);
   const [success, setSuccess] = useState(false);
+  const [importedWallet, setImportedWallet] = useState<WalletData | null>(null);
 
   const validatePassword = (password: string): boolean => {
     return password.length >= 8 &&
@@ -111,6 +116,16 @@ export const ImportRedesigned: React.FC = () => {
       recommended: true,
     },
     {
+      id: 'steganography' as const,
+      title: 'Steganographic Image',
+      description: 'Restore wallet from a steganographic backup image',
+      icon: () => (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    {
       id: 'keystore' as const,
       title: 'Keystore File',
       description: 'Import using a keystore JSON file',
@@ -124,7 +139,7 @@ export const ImportRedesigned: React.FC = () => {
     },
   ];
 
-  const handleMethodSelect = (method: 'mnemonic' | 'keystore' | 'private-key') => {
+  const handleMethodSelect = (method: 'mnemonic' | 'keystore' | 'private-key' | 'steganography') => {
     setImportMethod(method);
     setCurrentStep(method);
   };
@@ -248,6 +263,63 @@ export const ImportRedesigned: React.FC = () => {
     } catch (err) {
       console.error('Private key import error:', err);
       setError('Failed to import private key. Please check your key and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSteganographyImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!stegoImage) {
+      setError('Please select a steganographic image');
+      return;
+    }
+
+    if (!stegoKey.trim()) {
+      setError('Please enter the steganographic key');
+      return;
+    }
+
+    if (!stegoPassword.trim()) {
+      setError('Please enter your wallet password');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Import steganography client function
+      const { extractFromSteganographicImage } = await import('@/lib/steganography-client');
+
+      const result = await extractFromSteganographicImage({
+        stegoImage,
+        stegoKey: stegoKey.trim(),
+        password: stegoPassword.trim(),
+        dataType: 'wallet_backup'
+      });
+
+      if (result.success && result.walletData) {
+        const walletData: WalletData = {
+          address: result.walletData.address,
+          privateKey: result.walletData.privateKey || '',
+          mnemonic: result.walletData.mnemonic || '',
+          customId: result.walletData.customId || '',
+        };
+
+        // Encrypt and store wallet
+        const encryptedWallet = encryptWallet(walletData, stegoPassword);
+        storeEncryptedWallet(encryptedWallet);
+
+        setImportedWallet(walletData);
+        setSuccess(true);
+        setCurrentStep('complete');
+      } else {
+        setError(result.error || 'Failed to restore wallet from steganographic image');
+      }
+    } catch (err) {
+      console.error('Steganography import error:', err);
+      setError('Failed to import from steganographic image. Please check your image and key.');
     } finally {
       setIsLoading(false);
     }
@@ -547,6 +619,134 @@ export const ImportRedesigned: React.FC = () => {
                 variant="danger"
               >
                 {isLoading ? 'Importing Private Key...' : 'Import Private Key'}
+              </Button>
+            </form>
+          </Card>
+        )}
+
+        {/* Steganography Import */}
+        {currentStep === 'steganography' && (
+          <Card variant="glass" padding="lg">
+            <div className="flex items-center mb-6">
+              <button
+                onClick={() => setCurrentStep('method')}
+                className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 mr-3"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Import from Steganographic Image</h2>
+                <p className="text-sm text-neutral-400">Restore your wallet from a steganographic backup</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSteganographyImport} className="space-y-6">
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Steganographic Image *
+                </label>
+                <div className="border-2 border-dashed border-neutral-600 rounded-lg p-6 text-center hover:border-neutral-500 transition-colors">
+                  {stegoImage ? (
+                    <div className="space-y-3">
+                      <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                        <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{stegoImage.name}</p>
+                        <p className="text-neutral-400 text-sm">{(stegoImage.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStegoImage(null)}
+                        className="text-red-400 hover:text-red-300 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="w-12 h-12 bg-neutral-700 rounded-full flex items-center justify-center mx-auto">
+                        <svg className="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-neutral-300 font-medium">Upload Steganographic Image</p>
+                        <p className="text-neutral-400 text-sm">PNG or JPEG files only</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setStegoImage(file);
+                        }}
+                        className="hidden"
+                        id="stego-image-upload"
+                      />
+                      <label
+                        htmlFor="stego-image-upload"
+                        className="inline-block px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg cursor-pointer transition-colors"
+                      >
+                        Choose File
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <FormInput
+                label="Steganographic Key"
+                value={stegoKey}
+                onChange={setStegoKey}
+                placeholder="Enter your steganographic key"
+                required
+                icon={
+                  <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                }
+                securityLevel="maximum"
+              />
+
+              <FormInput
+                label="Wallet Password"
+                type="password"
+                value={stegoPassword}
+                onChange={setStegoPassword}
+                placeholder="Enter your wallet password"
+                required
+                error={error}
+                icon={<SecurityIcons.Lock className="w-5 h-5 text-neutral-400" />}
+                securityLevel="maximum"
+              />
+
+              <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <svg className="w-5 h-5 text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-blue-300 font-medium mb-1">Steganographic Recovery</h4>
+                    <p className="text-blue-200 text-sm">
+                      This will extract your wallet data from the steganographic image using the provided key and password.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                fullWidth
+                loading={isLoading}
+                disabled={!stegoImage || !stegoKey || !stegoPassword}
+              >
+                {isLoading ? 'Restoring Wallet...' : 'Restore from Image'}
               </Button>
             </form>
           </Card>

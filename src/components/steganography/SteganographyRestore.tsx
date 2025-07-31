@@ -84,15 +84,15 @@ export default function SteganographyRestore({
   const isFormValid = stegoImage && stegoKey.trim() && password.trim();
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">
+    <div className="max-w-md mx-auto p-6">
       <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Restore from Steganographic Image</h2>
-        <p className="text-gray-600">
+        <h2 className="text-2xl font-bold text-white mb-2">Restore from Steganographic Image</h2>
+        <p className="text-neutral-300">
           Extract your wallet from a steganographic backup image
         </p>
       </div>
@@ -157,7 +157,7 @@ export default function SteganographyRestore({
 
         {/* Steganographic Key */}
         <div>
-          <label htmlFor="stegoKey" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="stegoKey" className="block text-sm font-medium text-neutral-300 mb-1">
             Steganographic Key *
           </label>
           <input
@@ -166,17 +166,17 @@ export default function SteganographyRestore({
             value={stegoKey}
             onChange={(e) => setStegoKey(e.target.value)}
             placeholder="Enter your steganographic key"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 bg-neutral-800/50 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={isLoading}
           />
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-neutral-400 mt-1">
             The key provided when you created the steganographic backup
           </div>
         </div>
 
         {/* Wallet Password */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-1">
             Wallet Password *
           </label>
           <div className="relative">
@@ -186,17 +186,17 @@ export default function SteganographyRestore({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your wallet password"
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 pr-10 bg-neutral-800/50 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={isLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-300"
               disabled={isLoading}
             >
               <svg
-                className="w-5 h-5 text-gray-400"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -209,24 +209,30 @@ export default function SteganographyRestore({
               </svg>
             </button>
           </div>
+          <div className="text-xs text-neutral-400 mt-1">
+            The password used to encrypt your wallet
+          </div>
         </div>
 
         {/* Data Type Selection */}
         <div>
-          <label htmlFor="dataType" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="dataType" className="block text-sm font-medium text-neutral-300 mb-1">
             Backup Type
           </label>
           <select
             id="dataType"
             value={dataType}
             onChange={(e) => setDataType(e.target.value as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 bg-neutral-800/50 border border-neutral-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={isLoading}
           >
-            <option value="wallet_backup">Full Wallet</option>
-            <option value="mnemonic">Mnemonic Only</option>
-            <option value="private_key">Private Key Only</option>
+            <option value="wallet_backup" className="bg-neutral-800 text-white">Full Wallet</option>
+            <option value="mnemonic" className="bg-neutral-800 text-white">Mnemonic Only</option>
+            <option value="private_key" className="bg-neutral-800 text-white">Private Key Only</option>
           </select>
+          <div className="text-xs text-neutral-400 mt-1">
+            Select the type of data stored in your steganographic image
+          </div>
         </div>
 
         {/* Security Info */}
@@ -246,7 +252,7 @@ export default function SteganographyRestore({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            className="flex-1 px-4 py-2 border border-neutral-600 text-neutral-300 rounded-md hover:bg-neutral-800/50 transition-colors"
             disabled={isLoading}
           >
             Cancel

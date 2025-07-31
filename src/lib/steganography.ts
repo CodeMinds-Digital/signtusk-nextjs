@@ -4,9 +4,9 @@
  * Now using steggy library for better compatibility and reliability
  */
 
-import { conceal, reveal } from 'steggy';
 import * as CryptoJS from 'crypto-js';
 import { Buffer } from 'buffer';
+import { PNG } from 'pngjs';
 
 /**
  * Interface for steganography options
@@ -140,7 +140,7 @@ export function imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
 }
 
 /**
- * Hide data within an image using steganography
+ * Hide data within an image using LSB steganography
  */
 export async function hideDataInImage(
   data: string,
@@ -171,8 +171,8 @@ export async function hideDataInImage(
       carrierBuffer = await createDefaultCarrierImageBuffer();
     }
 
-    // Hide data using steggy (curried function)
-    const stegoBuffer = conceal()(carrierBuffer, paddedData);
+    // Hide data using our custom LSB implementation
+    const stegoBuffer = await hideDataInPNG(carrierBuffer, paddedData);
 
     // Convert buffer to blob
     const stegoBlob = new Blob([stegoBuffer], { type: 'image/png' });
@@ -201,8 +201,8 @@ export async function extractDataFromImage(
     const arrayBuffer = await stegoImage.arrayBuffer();
     const imageBuffer = Buffer.from(arrayBuffer);
 
-    // Extract hidden data using steggy (curried function)
-    const extractedData = reveal()(imageBuffer, 'utf8');
+    // Extract hidden data using our custom LSB implementation
+    const extractedData = await extractDataFromPNG(imageBuffer);
 
     // Remove padding
     const data = removeRandomPadding(extractedData, stegoKey);
@@ -284,17 +284,17 @@ export async function createDefaultCarrierImageBuffer(): Promise<Buffer> {
     const { createCanvas } = require('canvas');
     const canvas = createCanvas(1200, 1200);
     const ctx = canvas.getContext('2d');
-    
+
     // Create a gradient background
     const gradient = ctx.createRadialGradient(600, 600, 0, 600, 600, 600);
     gradient.addColorStop(0, '#ff6b6b');
     gradient.addColorStop(0.3, '#4ecdc4');
     gradient.addColorStop(0.6, '#45b7d1');
     gradient.addColorStop(1, '#96ceb4');
-    
+
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 1200, 1200);
-    
+
     // Add some noise for better steganography capacity
     for (let i = 0; i < 5000; i++) {
       const x = Math.random() * 1200;
@@ -303,7 +303,7 @@ export async function createDefaultCarrierImageBuffer(): Promise<Buffer> {
       ctx.fillStyle = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.2)`;
       ctx.fillRect(x, y, size, size);
     }
-    
+
     return canvas.toBuffer('image/png');
   } catch (canvasError) {
     console.error('Canvas fallback failed:', canvasError);
@@ -369,4 +369,119 @@ export function calculateDataCapacity(width: number, height: number): number {
  */
 export function hashStegoKey(stegoKey: string): string {
   return CryptoJS.SHA256(stegoKey).toString();
+}
+
+/**
+ * Custom LSB steganography implementation for hiding data in PNG images
+ */
+async function hideDataInPNG(carrierBuffer: Buffer, textData: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const png = new PNG();
+
+      png.parse(carrierBuffer, (error, pngData) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        // Convert string to binary
+        const binaryData = stringToBinary(textData + '\0'); // Add null terminator
+
+        // Check if image has enough capacity
+        const maxCapacity = (pngData.data.length / 4) * 3; // 3 bits per pixel (RGB channels)
+        if (binaryData.length > maxCapacity) {
+          reject(new Error('Image too small to hide the data'));
+          return;
+        }
+
+        // Hide data in LSB of RGB channels
+        let dataIndex = 0;
+        for (let i = 0; i < pngData.data.length && dataIndex < binaryData.length; i += 4) {
+          // Red channel
+          if (dataIndex < binaryData.length) {
+            pngData.data[i] = (pngData.data[i] & 0xFE) | parseInt(binaryData[dataIndex]);
+            dataIndex++;
+          }
+          // Green channel
+          if (dataIndex < binaryData.length) {
+            pngData.data[i + 1] = (pngData.data[i + 1] & 0xFE) | parseInt(binaryData[dataIndex]);
+            dataIndex++;
+          }
+          // Blue channel
+          if (dataIndex < binaryData.length) {
+            pngData.data[i + 2] = (pngData.data[i + 2] & 0xFE) | parseInt(binaryData[dataIndex]);
+            dataIndex++;
+          }
+          // Alpha channel remains unchanged
+        }
+
+        // Pack the modified PNG
+        const buffer = PNG.sync.write(pngData);
+        resolve(buffer);
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Custom LSB steganography implementation for extracting data from PNG images
+ */
+async function extractDataFromPNG(stegoBuffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const png = new PNG();
+
+      png.parse(stegoBuffer, (error, pngData) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        // Extract LSB from RGB channels
+        let binaryData = '';
+        for (let i = 0; i < pngData.data.length; i += 4) {
+          // Red channel LSB
+          binaryData += (pngData.data[i] & 1).toString();
+          // Green channel LSB
+          binaryData += (pngData.data[i + 1] & 1).toString();
+          // Blue channel LSB
+          binaryData += (pngData.data[i + 2] & 1).toString();
+        }
+
+        // Convert binary to string
+        const extractedData = binaryToString(binaryData);
+        resolve(extractedData);
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Convert string to binary representation
+ */
+function stringToBinary(str: string): string {
+  return str.split('').map(char =>
+    char.charCodeAt(0).toString(2).padStart(8, '0')
+  ).join('');
+}
+
+/**
+ * Convert binary representation to string
+ */
+function binaryToString(binary: string): string {
+  let result = '';
+  for (let i = 0; i < binary.length; i += 8) {
+    const byte = binary.substr(i, 8);
+    if (byte.length === 8) {
+      const charCode = parseInt(byte, 2);
+      if (charCode === 0) break; // Null terminator found
+      result += String.fromCharCode(charCode);
+    }
+  }
+  return result;
 }
