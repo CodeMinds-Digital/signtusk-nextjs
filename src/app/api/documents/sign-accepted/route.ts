@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Download original file from Supabase to create signed PDF using admin client
     const downloadResult = await downloadFileAsAdmin('documents', document.supabase_path);
-    
+
     if (downloadResult.error || !downloadResult.data) {
       return NextResponse.json(
         { error: 'Failed to download original document for signing' },
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Create File object from downloaded blob
-    const originalFile = new File([downloadResult.data], document.file_name, { 
-      type: document.file_type 
+    const originalFile = new File([downloadResult.data], document.file_name, {
+      type: document.file_type
     });
 
     // Step 5: Generate signed PDF with embedded signature
@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 7: Generate hash of signed PDF using server-side function
-    const signedPdfFile = new File([signedPdfBlob], `signed_${document.file_name}`, { 
-      type: 'application/pdf' 
+    const signedPdfFile = new File([signedPdfBlob], `signed_${document.file_name}`, {
+      type: 'application/pdf'
     });
     const signedHash = await generateDocumentHashServer(signedPdfFile);
 

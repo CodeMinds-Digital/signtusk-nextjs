@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
+import QRCode from 'qrcode';
 
 export interface SignatureData {
   id: string;
@@ -275,8 +276,9 @@ export async function addSignaturesToPDF(
         }
       });
 
-      // Add verification stamp in corner if there are signatures
-      if (signatures.length > 0) {
+      // Add verification stamp with QR code in corner if there are signatures
+      if (signatures.length > 0 && originalHash) {
+        // Create verification stamp box
         newPage.drawRectangle({
           x: width,
           y: 0,
@@ -288,38 +290,75 @@ export async function addSignaturesToPDF(
         });
 
         const stampFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        newPage.drawText('DIGITALLY', {
-          x: width + 15,
-          y: 70,
-          font: stampFont,
-          size: 10,
-          color: rgb(0, 0, 0.8),
-        });
 
-        newPage.drawText('SIGNED', {
-          x: width + 20,
-          y: 55,
-          font: stampFont,
-          size: 10,
-          color: rgb(0, 0, 0.8),
-        });
+        // Generate QR code for verification
+        try {
+          const qrData = createVerificationQRData(originalHash, signatures);
+          const qrCodeDataURL = await generateQRCode(qrData);
 
-        newPage.drawText(`${signatures.length} Signature${signatures.length > 1 ? 's' : ''}`, {
-          x: width + 10,
-          y: 35,
-          font: stampFont,
-          size: 8,
-          color: rgb(0, 0, 0.8),
-        });
+          // Convert data URL to bytes for embedding
+          const qrCodeBytes = Uint8Array.from(
+            atob(qrCodeDataURL.split(',')[1]),
+            c => c.charCodeAt(0)
+          );
 
-        const verifyDate = new Date().toLocaleDateString();
-        newPage.drawText(verifyDate, {
-          x: width + 15,
-          y: 20,
-          font: stampFont,
-          size: 8,
-          color: rgb(0, 0, 0.8),
-        });
+          // Embed QR code image
+          const qrImage = await pdfDoc.embedPng(qrCodeBytes);
+
+          // Draw large QR code filling most of the stamp area
+          newPage.drawImage(qrImage, {
+            x: width + 10,
+            y: 25,
+            width: 80,
+            height: 80,
+          });
+
+          // Add single line text at bottom
+          newPage.drawText('Scan QR to Verify', {
+            x: width + 15,
+            y: 10,
+            font: stampFont,
+            size: 8,
+            color: rgb(0, 0, 0.8),
+          });
+
+        } catch (qrError) {
+          console.error('Failed to generate QR code, falling back to text-only stamp:', qrError);
+
+          // Fallback to original text-only stamp
+          newPage.drawText('DIGITALLY', {
+            x: width + 15,
+            y: 70,
+            font: stampFont,
+            size: 10,
+            color: rgb(0, 0, 0.8),
+          });
+
+          newPage.drawText('SIGNED', {
+            x: width + 20,
+            y: 55,
+            font: stampFont,
+            size: 10,
+            color: rgb(0, 0, 0.8),
+          });
+
+          newPage.drawText(`${signatures.length} Signature${signatures.length > 1 ? 's' : ''}`, {
+            x: width + 10,
+            y: 35,
+            font: stampFont,
+            size: 8,
+            color: rgb(0, 0, 0.8),
+          });
+
+          const verifyDate = new Date().toLocaleDateString();
+          newPage.drawText(verifyDate, {
+            x: width + 15,
+            y: 20,
+            font: stampFont,
+            size: 8,
+            color: rgb(0, 0, 0.8),
+          });
+        }
       }
 
       // Remove the original page
@@ -338,21 +377,37 @@ export async function addSignaturesToPDF(
 /**
  * Create a signature verification QR code data
  * @param documentHash - The document hash
- * @param signatures - Array of signatures
- * @returns QR code data string
+ * @param signatures - Array of signatures (not used, kept for compatibility)
+ * @param baseUrl - Base URL for the application (not used, kept for compatibility)
+ * @returns QR code data string (just the document hash)
  */
-export function createVerificationQRData(documentHash: string, signatures: SignatureData[]): string {
-  const verificationData = {
-    documentHash,
-    signatureCount: signatures.length,
-    signers: signatures.map(sig => ({
-      id: sig.signerId,
-      timestamp: sig.timestamp
-    })),
-    verificationUrl: `${window.location.origin}/verify/${documentHash}`
-  };
+export function createVerificationQRData(documentHash: string, signatures: SignatureData[], baseUrl?: string): string {
+  // QR code contains only the document hash
+  // When scanned, the app will construct the verification URL
+  return documentHash;
+}
 
-  return JSON.stringify(verificationData);
+/**
+ * Generate QR code as PNG data URL
+ * @param data - Data to encode in QR code
+ * @returns Promise that resolves to PNG data URL
+ */
+export async function generateQRCode(data: string): Promise<string> {
+  try {
+    const qrCodeDataURL = await QRCode.toDataURL(data, {
+      width: 200, // Increased size for better scanning
+      margin: 2,
+      color: {
+        dark: '#000000', // Pure black for better contrast
+        light: '#FFFFFF' // White background
+      },
+      errorCorrectionLevel: 'H' // High error correction for better scanning
+    });
+    return qrCodeDataURL;
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    throw new Error('Failed to generate QR code');
+  }
 }
 
 /**
