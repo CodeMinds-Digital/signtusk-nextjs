@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DocumentDatabase } from '@/lib/database';
 import { downloadFileFromSupabase } from '@/lib/supabase-storage';
 
 export async function GET(
@@ -11,16 +10,31 @@ export async function GET(
 
     console.log(`[PDF API] Fetching PDF for document hash: ${documentHash}`);
 
-    // Get document from database
-    const document = await DocumentDatabase.getDocument(documentHash);
+    // Get document from database by hash (not ID)
+    const { supabase } = await import('@/lib/database');
+    const { data: documents, error: docError } = await supabase
+      .from('documents')
+      .select('*')
+      .or(`original_hash.eq.${documentHash},signed_hash.eq.${documentHash}`)
+      .limit(1);
 
-    if (!document) {
+    if (docError) {
+      console.error('[PDF API] Database query error:', docError);
+      return NextResponse.json(
+        { error: 'Failed to query document database' },
+        { status: 500 }
+      );
+    }
+
+    if (!documents || documents.length === 0) {
       console.log(`[PDF API] Document not found: ${documentHash}`);
       return NextResponse.json(
         { error: 'Document not found' },
         { status: 404 }
       );
     }
+
+    const document = documents[0];
 
     // Check if document has a signed PDF
     if (!document.signed_supabase_path) {
