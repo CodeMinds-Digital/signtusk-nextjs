@@ -124,7 +124,7 @@ export async function addSignaturesToPDF(
 ): Promise<Uint8Array> {
   try {
     // Load the existing PDF
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
     const pages = pdfDoc.getPages();
 
     // Process each page to add signature areas

@@ -10,9 +10,29 @@ export async function GET(
 
     if (!hash) {
       return NextResponse.json(
-        { error: 'Document hash is required' },
+        { error: 'Document hash or QR data is required' },
         { status: 400 }
       );
+    }
+
+    // Check if this is a multi-signature QR code
+    if (hash.startsWith('MS:')) {
+      const multiSignatureRequestId = hash.substring(3); // Remove 'MS:' prefix
+
+      // Redirect to multi-signature verification endpoint
+      const multiSigResponse = await fetch(`${request.url.replace(`/qr/${hash}`, `/multi-signature/${multiSignatureRequestId}`)}`, {
+        headers: request.headers
+      });
+
+      if (multiSigResponse.ok) {
+        const multiSigData = await multiSigResponse.json();
+        return NextResponse.json(multiSigData);
+      } else {
+        return NextResponse.json(
+          { error: 'Multi-signature document not found' },
+          { status: 404 }
+        );
+      }
     }
 
     // Get document and signature information from database

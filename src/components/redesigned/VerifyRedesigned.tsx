@@ -27,6 +27,7 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [currentPage, setCurrentPage] = useState('verify');
+  const [documentType, setDocumentType] = useState<'single' | 'multi' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check if document context is provided via URL params
@@ -231,6 +232,7 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
 
     setIsProcessing(true);
     setVerificationResult(null);
+    setDocumentType(null);
 
     try {
       const formData = new FormData();
@@ -240,6 +242,7 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
         formData.append('documentId', documentId);
       }
 
+      // First, try to verify as a regular document
       const response = await fetch('/api/documents/verify', {
         method: 'POST',
         body: formData
@@ -250,6 +253,44 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
       }
 
       const result = await response.json();
+
+      // Check if this might be a multi-signature document
+      if (!result.verification.isValid && result.verification.error?.includes('not found')) {
+        // Try to verify as multi-signature document by checking if it contains multi-sig QR code
+        try {
+          // Extract text from PDF to look for multi-signature QR data
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            if (text && text.includes('MS:')) {
+              // This appears to be a multi-signature document
+              const msMatch = text.match(/MS:([a-f0-9-]+)/);
+              if (msMatch) {
+                const multiSigId = msMatch[1];
+                // Redirect to multi-signature verification
+                router.push(`/multi-signature/verify/${multiSigId}`);
+                return;
+              }
+            }
+          };
+          reader.readAsText(file);
+        } catch (msError) {
+          console.log('Not a multi-signature document');
+        }
+      }
+
+      // Set document type based on verification result
+      if (result.verification.documentType === 'multi-signature') {
+        setDocumentType('multi');
+        // If this is a multi-signature document, redirect to proper verification
+        if (result.verification.multiSignatureRequestId) {
+          router.push(`/multi-signature/verify/${result.verification.multiSignatureRequestId}`);
+          return;
+        }
+      } else {
+        setDocumentType('single');
+      }
+
       setVerificationResult({
         isValid: result.verification.isValid,
         details: result.verification.details,
@@ -300,9 +341,27 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
 
       {/* Main Content - Fixed sidebar overlap with proper margin */}
       <div className="lg:ml-64">
+        {/* Desktop Header with Tower Symbol */}
+        <div className="hidden lg:flex items-center justify-between h-16 px-6 bg-neutral-900/30 backdrop-blur-sm border-b border-neutral-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+              <SecurityIcons.Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-semibold text-white">Document Verification</span>
+          </div>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            variant="outline"
+            size="sm"
+            icon={<SecurityIcons.ArrowLeft className="w-4 h-4" />}
+          >
+            Dashboard
+          </Button>
+        </div>
+
         <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="mb-8">
+          {/* Header - Mobile Only */}
+          <div className="mb-8 lg:hidden">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-3 mb-4">

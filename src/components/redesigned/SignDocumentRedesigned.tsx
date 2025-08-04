@@ -41,6 +41,9 @@ export const SignDocumentRedesigned: React.FC = () => {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
+  // Document type selection
+  const [documentType, setDocumentType] = useState<'single' | 'multi'>('single');
+
   // Add error state for UI messages
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<any>(null);
@@ -93,6 +96,33 @@ export const SignDocumentRedesigned: React.FC = () => {
   const handleUploadDocument = async (forceUpload: boolean = false) => {
     if (!selectedFile || !wallet) {
       alert('Please select a file and ensure you are logged in');
+      return;
+    }
+
+    // If multi-signature is selected, redirect to multi-signature creation
+    if (documentType === 'multi') {
+      // Store the file and metadata in sessionStorage for the multi-signature flow
+      const fileData = {
+        file: selectedFile,
+        metadata: documentMetadata,
+        timestamp: Date.now()
+      };
+
+      // Convert file to base64 for storage
+      const reader = new FileReader();
+      reader.onload = () => {
+        sessionStorage.setItem('pendingMultiSigDocument', JSON.stringify({
+          ...fileData,
+          fileData: reader.result,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type
+        }));
+
+        // Redirect to multi-signature creation
+        router.push('/multi-signature?mode=create');
+      };
+      reader.readAsDataURL(selectedFile);
       return;
     }
 
@@ -279,9 +309,27 @@ export const SignDocumentRedesigned: React.FC = () => {
 
       {/* Main Content */}
       <div className="lg:ml-64">
+        {/* Desktop Header with Tower Symbol */}
+        <div className="hidden lg:flex items-center justify-between h-16 px-6 bg-neutral-900/30 backdrop-blur-sm border-b border-neutral-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+              <SecurityIcons.Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-semibold text-white">Sign Document</span>
+          </div>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            variant="outline"
+            size="sm"
+            icon={<SecurityIcons.ArrowLeft className="w-4 h-4" />}
+          >
+            Dashboard
+          </Button>
+        </div>
+
         <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="mb-8">
+          {/* Header - Mobile Only */}
+          <div className="mb-8 lg:hidden">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-3 mb-4">
@@ -363,8 +411,58 @@ export const SignDocumentRedesigned: React.FC = () => {
             <Card variant="glass" padding="lg" className="mb-8">
               <h2 className="text-xl font-semibold text-white mb-6">Step 1: Upload Document & Add Information</h2>
               <p className="text-neutral-400 mb-6">
-                Select a PDF document and provide optional metadata before proceeding to preview.
+                Select a PDF document and choose your signing workflow before proceeding to preview.
               </p>
+
+              {/* Document Type Selection */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-neutral-300 mb-3">
+                  Document Signing Type
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${documentType === 'single'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-neutral-600 hover:border-neutral-500'
+                      }`}
+                    onClick={() => setDocumentType('single')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-full border-2 ${documentType === 'single' ? 'border-primary-500 bg-primary-500' : 'border-neutral-400'
+                        }`}>
+                        {documentType === 'single' && (
+                          <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-white font-medium">Single Signer</h3>
+                        <p className="text-neutral-400 text-sm">Sign the document yourself</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${documentType === 'multi'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-neutral-600 hover:border-neutral-500'
+                      }`}
+                    onClick={() => setDocumentType('multi')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-full border-2 ${documentType === 'multi' ? 'border-primary-500 bg-primary-500' : 'border-neutral-400'
+                        }`}>
+                        {documentType === 'multi' && (
+                          <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-white font-medium">Multiple Signers</h3>
+                        <p className="text-neutral-400 text-sm">Require multiple people to sign</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${dragActive

@@ -1,5 +1,5 @@
-import { MultiSignatureRedesigned } from '@/components/redesigned/MultiSignatureRedesigned';
+import { MultiSignatureEnhanced } from '@/components/redesigned/MultiSignatureEnhanced';
 
 export default function MultiSignaturePage() {
-  return <MultiSignatureRedesigned />;
+  return <MultiSignatureEnhanced />;
 }

@@ -49,9 +49,15 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const loadDocumentDetails = async () => {
     if (!document) return;
 
+    // Skip loading details for multi-signature documents
+    if (document.metadata?.type === 'multi-signature' || document.id.startsWith('ms_')) {
+      console.log('Skipping details load for multi-signature document');
+      return;
+    }
+
     setIsLoadingDetails(true);
     try {
-      // Load document details from API
+      // Load document details from API (only for single signature documents)
       const response = await fetch(`/api/documents/${document.id}/details`, {
         method: 'GET',
         credentials: 'include'
@@ -322,7 +328,13 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
             <Button
               variant="outline"
               onClick={() => {
-                if (onNavigateToVerify && document) {
+                if (document.metadata?.type === 'multi-signature' || document.id.startsWith('ms_')) {
+                  // For multi-signature documents, route to multi-signature verification
+                  const multiSigRequestId = document.metadata?.multi_signature_request_id || document.id.replace('ms_', '');
+                  window.location.href = `/multi-signature/verify/${multiSigRequestId}`;
+                  onClose();
+                } else if (onNavigateToVerify && document) {
+                  // For single signature documents, use the callback
                   onNavigateToVerify(document);
                   onClose();
                 }

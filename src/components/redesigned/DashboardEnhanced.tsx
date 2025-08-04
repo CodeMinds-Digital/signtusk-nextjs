@@ -84,10 +84,22 @@ export const DashboardEnhanced: React.FC = () => {
         }));
 
         setDocuments(transformedDocs);
+        // Calculate pending documents including multi-signature documents that need user action
+        const pendingDocs = transformedDocs.filter((d: any) => {
+          if (d.status === 'pending') {
+            // For multi-signature documents, check if user can sign
+            if (d.metadata?.type === 'multi-signature') {
+              return d.metadata?.progress?.completed < d.metadata?.progress?.total;
+            }
+            return true;
+          }
+          return false;
+        });
+
         setStats({
           totalDocuments: transformedDocs.length,
           signedDocuments: transformedDocs.filter((d: any) => d.status === 'completed').length,
-          pendingDocuments: transformedDocs.filter((d: any) => d.status === 'pending').length,
+          pendingDocuments: pendingDocs.length,
           verifiedDocuments: transformedDocs.filter((d: any) => d.status === 'verified').length,
         });
       }
@@ -133,15 +145,38 @@ export const DashboardEnhanced: React.FC = () => {
     let previewUrl = '';
     let isSignedVersion = false;
 
+    // Debug logging for document URLs
+    console.log('Document preview debug:', {
+      id: document.id,
+      status: document.status,
+      signedUrl: document.signedUrl,
+      originalUrl: document.originalUrl,
+      metadata: document.metadata
+    });
+
+    // Debug logging for multi-signature documents
+    if (document.metadata?.type === 'multi-signature') {
+      console.log('🔍 Multi-signature document preview debug:', {
+        id: document.id,
+        status: document.status,
+        signedUrl: document.signedUrl,
+        originalUrl: document.originalUrl,
+        metadata: document.metadata
+      });
+    }
+
     if (document.status === 'completed' && document.signedUrl) {
       // Show signed PDF for completed documents
       previewUrl = document.signedUrl;
       isSignedVersion = true;
+      console.log('✅ Using signed PDF:', previewUrl);
     } else if (document.originalUrl) {
       // Show original PDF for non-completed documents
       previewUrl = document.originalUrl;
       isSignedVersion = false;
+      console.log('📄 Using original PDF:', previewUrl);
     } else {
+      console.error('❌ No preview URL available for document:', document);
       alert('Document preview not available');
       return;
     }
@@ -155,18 +190,36 @@ export const DashboardEnhanced: React.FC = () => {
   };
 
   const handleVerifyDocument = (document: Document) => {
-    // Navigate to verify tab in sidebar with document context
-    setCurrentPage('verify');
-    // Store document context for verify page
-    sessionStorage.setItem('verifyDocumentContext', JSON.stringify({
-      documentId: document.id,
-      fileName: document.fileName
-    }));
+    // Check if this is a multi-signature document
+    if (document.metadata?.type === 'multi-signature') {
+      // For multi-signature documents, route to multi-signature verification
+      const multiSigRequestId = document.metadata?.multi_signature_request_id || document.id.replace('ms_', '');
+      router.push(`/multi-signature/verify/${multiSigRequestId}`);
+    } else if (document.id.startsWith('ms_')) {
+      // Handle legacy multi-signature documents with ms_ prefix
+      const actualDocumentId = document.id.replace('ms_', '');
+      const multiSigRequestId = document.metadata?.multi_signature_request_id || actualDocumentId;
+      router.push(`/multi-signature/verify/${multiSigRequestId}`);
+    } else {
+      // For single signature documents, navigate to verify tab in sidebar
+      setCurrentPage('verify');
+      // Store document context for verify page
+      sessionStorage.setItem('verifyDocumentContext', JSON.stringify({
+        documentId: document.id,
+        fileName: document.fileName
+      }));
+    }
   };
 
   const handleDocumentClick = (document: Document) => {
-    // Main click handler for document rows - shows modal with audit log
-    handleViewDocument(document);
+    // Navigate to appropriate page based on document type
+    if (document.metadata?.type === 'multi-signature') {
+      const multiSigRequestId = document.metadata?.multi_signature_request_id || document.id.replace('ms_', '');
+      router.push(`/multi-signature/verify/${multiSigRequestId}`);
+    } else {
+      // Main click handler for document rows - shows modal with audit log
+      handleViewDocument(document);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -230,9 +283,24 @@ export const DashboardEnhanced: React.FC = () => {
 
       {/* Main Content - Fixed sidebar overlap with proper margin */}
       <div className="lg:ml-64">
+        {/* Desktop Header with Tower Symbol */}
+        <div className="hidden lg:flex items-center justify-between h-16 px-6 bg-neutral-900/30 backdrop-blur-sm border-b border-neutral-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+              <SecurityIcons.Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-semibold text-white">Dashboard</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-neutral-400 text-sm">
+              Welcome, {currentUser?.custom_id || 'User'}
+            </span>
+          </div>
+        </div>
+
         <main className="p-6">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-8 lg:hidden">
             <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
             <p className="text-neutral-400">
               Welcome back, {currentUser?.custom_id || 'User'}. Manage your documents and signatures securely.
@@ -389,7 +457,13 @@ export const DashboardEnhanced: React.FC = () => {
                           <div className="flex items-center space-x-4 text-sm text-neutral-400">
                             <span>{formatFileSize(document.fileSize)}</span>
                             <span>{formatDate(document.createdAt)}</span>
-                            <span>{document.signatureCount} signature{document.signatureCount !== 1 ? 's' : ''}</span>
+                            {document.metadata?.type === 'multi-signature' ? (
+                              <span className="text-blue-400">
+                                Multi-Sig: {document.metadata.progress?.completed || 0}/{document.metadata.progress?.total || 0} signatures
+                              </span>
+                            ) : (
+                              <span>{document.signatureCount} signature{document.signatureCount !== 1 ? 's' : ''}</span>
+                            )}
                           </div>
                         </div>
                       </div>
