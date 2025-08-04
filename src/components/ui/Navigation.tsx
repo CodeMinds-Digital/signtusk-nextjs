@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SecurityIcons, StatusIndicator } from './DesignSystem';
 import { Button } from './Button';
+import { NotificationSystem } from '../multi-signature/NotificationSystem';
 
 interface NavigationItem {
   id: string;
@@ -78,7 +79,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   return (
     <>
       {/* Desktop Navigation */}
-      <nav className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-neutral-900/50 lg:backdrop-blur-sm lg:border-r lg:border-neutral-800">
+      <nav className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-neutral-900/50 lg:backdrop-blur-sm lg:border-r lg:border-neutral-800 lg:z-40">
         {/* Logo */}
         <div className="flex items-center h-16 px-6 border-b border-neutral-800">
           <div className="flex items-center space-x-3">
@@ -160,7 +161,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* Mobile Navigation */}
       <div className="lg:hidden">
         {/* Mobile Header */}
-        <div className="flex items-center justify-between h-16 px-4 bg-neutral-900/50 backdrop-blur-sm border-b border-neutral-800">
+        <div className="flex items-center justify-between h-16 px-4 bg-neutral-900/50 backdrop-blur-sm border-b border-neutral-800 relative z-50">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
               <SecurityIcons.Shield className="w-5 h-5 text-white" />
@@ -168,21 +169,30 @@ export const Navigation: React.FC<NavigationProps> = ({
             <span className="text-xl font-bold text-white">SignTusk</span>
           </div>
 
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+          <div className="flex items-center space-x-2">
+            <NotificationSystem
+              onNotificationClick={(notification) => {
+                if (notification.actionUrl) {
+                  router.push(notification.actionUrl);
+                }
+              }}
+            />
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 z-[60] lg:hidden">
             <div className="fixed inset-0 bg-black/50" onClick={() => setIsMobileMenuOpen(false)} />
-            <div className="fixed top-0 right-0 w-64 h-full bg-neutral-900 border-l border-neutral-800">
+            <div className="fixed top-0 right-0 w-64 h-full bg-neutral-900 border-l border-neutral-800 z-[70]">
               <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-800">
                 <span className="text-lg font-semibold text-white">Menu</span>
                 <button

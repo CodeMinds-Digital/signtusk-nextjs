@@ -189,9 +189,19 @@ export const SettingsRedesigned: React.FC<SettingsRedesignedProps> = ({ onPageCh
 
       {/* Main Content - Fixed sidebar overlap with proper margin */}
       <div className="lg:ml-64">
+        {/* Desktop Header with Tower Symbol */}
+        <div className="hidden lg:flex items-center justify-between h-16 px-6 bg-neutral-900/30 backdrop-blur-sm border-b border-neutral-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+              <SecurityIcons.Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-semibold text-white">Settings</span>
+          </div>
+        </div>
+
         <main className="p-6">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-8 lg:hidden">
             <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
             <p className="text-neutral-400">
               Manage your security settings, backup options, and account preferences.

@@ -95,12 +95,51 @@ export const DocumentsRedesigned: React.FC<DocumentsRedesignedProps> = ({ onPage
   };
 
   const handleViewDocument = (document: Document) => {
-    // Navigate to document detail view
-    router.push(`/documents/${document.id}`);
+    // Debug logging for document URLs
+    console.log('Document view debug:', {
+      id: document.id,
+      status: document.status,
+      signedUrl: document.signedUrl,
+      originalUrl: document.originalUrl,
+      metadata: document.metadata
+    });
+
+    // For completed documents (both single and multi-signature), show the signed PDF
+    if (document.status === 'completed' && document.signedUrl) {
+      // Open the signed PDF directly
+      console.log('Opening signed PDF:', document.signedUrl);
+      window.open(document.signedUrl, '_blank');
+    } else if (document.metadata?.type === 'multi-signature') {
+      // For pending multi-signature documents, go to verification page
+      const multiSigRequestId = document.metadata?.multi_signature_request_id || document.id.replace('ms_', '');
+      console.log('Routing to multi-signature verification:', multiSigRequestId);
+      router.push(`/multi-signature/verify/${multiSigRequestId}`);
+    } else if (document.originalUrl) {
+      // For pending single signature documents, show original PDF
+      console.log('Opening original PDF:', document.originalUrl);
+      window.open(document.originalUrl, '_blank');
+    } else {
+      // Navigate to document detail view as fallback
+      console.log('No URL available, routing to document detail');
+      router.push(`/documents/${document.id}`);
+    }
   };
 
   const handleVerifyDocument = (document: Document) => {
-    router.push(`/verify?document=${document.id}`);
+    // Check if this is a multi-signature document
+    if (document.metadata?.type === 'multi-signature') {
+      // For multi-signature documents, route to multi-signature verification
+      const multiSigRequestId = document.metadata?.multi_signature_request_id || document.id.replace('ms_', '');
+      router.push(`/multi-signature/verify/${multiSigRequestId}`);
+    } else if (document.id.startsWith('ms_')) {
+      // Handle legacy multi-signature documents with ms_ prefix
+      const actualDocumentId = document.id.replace('ms_', '');
+      const multiSigRequestId = document.metadata?.multi_signature_request_id || actualDocumentId;
+      router.push(`/multi-signature/verify/${multiSigRequestId}`);
+    } else {
+      // For single signature documents, use the unified verify page
+      router.push(`/verify?document=${document.id}`);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -182,15 +221,43 @@ export const DocumentsRedesigned: React.FC<DocumentsRedesignedProps> = ({ onPage
 
       {/* Main Content - Fixed sidebar overlap with proper margin */}
       <div className="lg:ml-64">
+        {/* Desktop Header with Tower Symbol */}
+        <div className="hidden lg:flex items-center justify-between h-16 px-6 bg-neutral-900/30 backdrop-blur-sm border-b border-neutral-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+              <SecurityIcons.Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-semibold text-white">Documents</span>
+          </div>
+        </div>
+
         <main className="p-6">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-8 lg:hidden">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">Documents</h1>
                 <p className="text-neutral-400">
                   Manage and view all your signed documents and their verification status.
                 </p>
+              </div>
+              <div className="flex space-x-3">
+                <Button
+                  onClick={() => router.push('/multi-signature')}
+                  variant="outline"
+                  size="sm"
+                  icon={<SecurityIcons.Shield className="w-4 h-4" />}
+                  className="text-neutral-400 border-neutral-600 hover:border-neutral-500"
+                >
+                  Manage Multi-Signature
+                </Button>
+                <Button
+                  onClick={() => router.push('/sign-document')}
+                  variant="primary"
+                  icon={<SecurityIcons.Signature className="w-4 h-4" />}
+                >
+                  Sign New Document
+                </Button>
               </div>
               <Button
                 onClick={() => router.push('/sign-document')}
@@ -297,9 +364,24 @@ export const DocumentsRedesigned: React.FC<DocumentsRedesignedProps> = ({ onPage
                             <SecurityIcons.Document className="w-5 h-5 text-neutral-400" />
                           </div>
                           <div>
-                            <h3 className="font-medium text-white">{document.fileName}</h3>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-medium text-white">{document.fileName}</h3>
+                              {document.metadata?.type === 'multi-signature' && (
+                                <span className="px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                                  Multi-Sig
+                                </span>
+                              )}
+                              {document.status === 'completed' && document.signedUrl && (
+                                <span className="px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                                  Signed
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-neutral-400">
-                              {document.signatureCount} signature{document.signatureCount !== 1 ? 's' : ''}
+                              {document.metadata?.type === 'multi-signature'
+                                ? `${document.metadata?.total_signers || 0} signers`
+                                : `${document.signatureCount} signature${document.signatureCount !== 1 ? 's' : ''}`
+                              }
                             </p>
                           </div>
                         </div>

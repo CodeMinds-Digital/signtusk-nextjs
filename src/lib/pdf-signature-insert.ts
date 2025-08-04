@@ -29,7 +29,7 @@ export async function insertSignaturesIntoPDF(
   stamp?: StampData
 ): Promise<Uint8Array> {
   try {
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
     const pages = pdfDoc.getPages();
 
     // Font mapping from sign_insert logic
@@ -43,7 +43,7 @@ export async function insertSignaturesIntoPDF(
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const { width, height } = page.getSize();
-      
+
       console.log(`Page ${i + 1}: Original width=${width}, Original height=${height}`);
       console.log(`Page ${i + 1}: New width=${width}, New height=${height}`);
 
@@ -125,10 +125,10 @@ async function addSignaturesToPage(
   // Bottom signatures (horizontal placement)
   let currentX = padding;
   let signatureIndex = 0;
-  
+
   // Calculate how many signatures fit in the bottom area
   const bottomSignatures = signatures.slice(0, Math.min(signatures.length, 3));
-  
+
   for (const signature of bottomSignatures) {
     const font = await pdfDoc.embedFont(fontMap[signature.font] || StandardFonts.Helvetica);
     const signatureWidth = font.widthOfTextAtSize(signature.text, 14) + 2 * padding;
@@ -184,7 +184,7 @@ async function addSignaturesToPage(
   // Right signatures (vertical placement) for additional signatures
   const rightSignatures = signatures.slice(3); // Signatures beyond the first 3
   let currentY = 100 + padding;
-  
+
   for (const signature of rightSignatures) {
     const font = await pdfDoc.embedFont(fontMap[signature.font] || StandardFonts.Helvetica);
     const signatureHeight = 80; // Fixed height for each signature block
@@ -253,7 +253,7 @@ async function addStampToPage(
 ): Promise<void> {
   const stampFont = await pdfDoc.embedFont(fontMap[stamp.font] || StandardFonts.Helvetica);
   const stampTextWidth = stampFont.widthOfTextAtSize(stamp.text, stamp.size);
-  
+
   // Center the stamp text in the corner rectangle
   page.drawText(stamp.text, {
     x: width - 100 + (100 - stampTextWidth) / 2,
@@ -316,13 +316,13 @@ export function validatePDFForSigning(file: File): { isValid: boolean; error?: s
       error: 'File must be a PDF document'
     };
   }
-  
+
   if (file.size > 50 * 1024 * 1024) { // 50MB limit
     return {
       isValid: false,
       error: 'PDF file size must be less than 50MB'
     };
   }
-  
+
   return { isValid: true };
 }
