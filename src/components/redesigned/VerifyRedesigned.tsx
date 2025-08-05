@@ -254,7 +254,28 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
 
       const result = await response.json();
 
-      // Check if this might be a multi-signature document
+      // Handle multi-signature documents
+      if (result.verification.isMultiSignature && result.verification.multiSignatureRequestId) {
+        setDocumentType('multi');
+        // Show a brief message before redirecting
+        setVerificationResult({
+          isValid: true,
+          details: {
+            fileName: file.name,
+            fileSize: file.size,
+            verification_method: 'Multi-signature document detected'
+          },
+          error: result.verification.message || 'Redirecting to multi-signature verification...'
+        });
+
+        // Redirect after a short delay to show the message
+        setTimeout(() => {
+          router.push(result.verification.redirectUrl || `/multi-signature/verify/${result.verification.multiSignatureRequestId}`);
+        }, 2000);
+        return;
+      }
+
+      // Check if this might be a multi-signature document (fallback)
       if (!result.verification.isValid && result.verification.error?.includes('not found')) {
         // Try to verify as multi-signature document by checking if it contains multi-sig QR code
         try {
@@ -282,11 +303,6 @@ export const VerifyRedesigned: React.FC<VerifyRedesignedProps> = ({ onPageChange
       // Set document type based on verification result
       if (result.verification.documentType === 'multi-signature') {
         setDocumentType('multi');
-        // If this is a multi-signature document, redirect to proper verification
-        if (result.verification.multiSignatureRequestId) {
-          router.push(`/multi-signature/verify/${result.verification.multiSignatureRequestId}`);
-          return;
-        }
       } else {
         setDocumentType('single');
       }

@@ -23,6 +23,8 @@ export interface VerificationResult {
     pageCount: number;
   };
   error?: string;
+  isMultiSignature?: boolean;
+  multiSignatureRequestId?: string;
 }
 
 /**
@@ -34,7 +36,31 @@ export async function extractSignatureInfo(file: File): Promise<{
   signatures: SignatureInfo[];
   originalHash?: string;
   isSignedPDF: boolean;
+  isMultiSignature?: boolean;
+  multiSignatureRequestId?: string;
 }> {
+  // Check if this is a multi-signature document by filename
+  console.log('🔍 Checking filename for multi-signature pattern:', file.name);
+  if (file.name.includes('multi-signature-signed')) {
+    console.log('✅ Detected multi-signature document by filename');
+
+    // Extract multi-signature request ID from filename
+    // Pattern: multi-signature-signed-{uuid}-{timestamp}.pdf
+    const multiSigMatch = file.name.match(/multi-signature-signed-([a-f0-9-]{36})/i);
+    if (multiSigMatch) {
+      const multiSigRequestId = multiSigMatch[1];
+      console.log('✅ Extracted multi-signature request ID from filename:', multiSigRequestId);
+      return {
+        signatures: [],
+        originalHash: undefined,
+        isSignedPDF: true,
+        isMultiSignature: true,
+        multiSignatureRequestId: multiSigRequestId
+      };
+    } else {
+      console.log('⚠️ Multi-signature filename detected but could not extract request ID');
+    }
+  }
   try {
     // Read the PDF content as text to look for embedded signature data
     const arrayBuffer = await file.arrayBuffer();
@@ -52,6 +78,8 @@ export async function extractSignatureInfo(file: File): Promise<{
     const signatures: SignatureInfo[] = [];
     let originalHash: string | undefined;
     let isSignedPDF = false;
+
+
 
     // Look for signature patterns in the PDF text
     // Our signed PDFs contain signature information as text
@@ -140,7 +168,20 @@ export async function verifySignedPDF(file: File): Promise<VerificationResult> {
     }
 
     // Extract signature information
-    const { signatures, originalHash, isSignedPDF } = await extractSignatureInfo(file);
+    const { signatures, originalHash, isSignedPDF, isMultiSignature, multiSignatureRequestId } = await extractSignatureInfo(file);
+
+    // Handle multi-signature documents
+    if (isMultiSignature && multiSignatureRequestId) {
+      return {
+        isValid: true,
+        isSignedPDF: true,
+        signatures: [],
+        documentInfo,
+        isMultiSignature: true,
+        multiSignatureRequestId,
+        error: `This is a multi-signature document. Please verify it using the multi-signature verification system at: /multi-signature/verify/${multiSignatureRequestId}`
+      };
+    }
 
     if (!isSignedPDF) {
       // This might be an original document, try to verify against database

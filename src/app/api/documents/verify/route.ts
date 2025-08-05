@@ -17,7 +17,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Use the new verification system
+    console.log('🔍 Starting document verification for file:', file.name);
     const verificationResult = await verifyDocument(file, providedSignature || undefined);
+    console.log('📄 Verification result:', {
+      isValid: verificationResult.isValid,
+      isSignedPDF: verificationResult.isSignedPDF,
+      isMultiSignature: verificationResult.isMultiSignature,
+      multiSignatureRequestId: verificationResult.multiSignatureRequestId,
+      error: verificationResult.error
+    });
+
+    // Handle multi-signature documents
+    if (verificationResult.isMultiSignature && verificationResult.multiSignatureRequestId) {
+      console.log('✅ Detected multi-signature document, redirecting to:', `/multi-signature/verify/${verificationResult.multiSignatureRequestId}`);
+      return NextResponse.json({
+        success: true,
+        verification: {
+          isValid: true,
+          isMultiSignature: true,
+          multiSignatureRequestId: verificationResult.multiSignatureRequestId,
+          redirectUrl: `/multi-signature/verify/${verificationResult.multiSignatureRequestId}`,
+          message: 'This is a multi-signature document. Redirecting to multi-signature verification...'
+        }
+      });
+    }
 
     // Get document metadata if available
     let documentMetadata = null;
@@ -25,7 +48,7 @@ export async function POST(request: NextRequest) {
       try {
         const { supabase } = await import('@/lib/database');
         const hashToLookup = verificationResult.originalHash || verificationResult.signedHash;
-        
+
         const { data: documents } = await supabase
           .from('documents')
           .select('metadata')
@@ -70,10 +93,10 @@ export async function POST(request: NextRequest) {
       if (verificationResult.signatures.length > 0) {
         // Try to find document in database for logging
         const { supabase } = await import('@/lib/database');
-        
+
         // Look up by original hash if available
         const hashToLookup = verificationResult.originalHash || verificationResult.signedHash;
-        
+
         if (hashToLookup) {
           const { data: documents } = await supabase
             .from('documents')
@@ -124,7 +147,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Document verification error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Document verification failed',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -138,10 +161,10 @@ function getClientIP(request: NextRequest): string | undefined {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
   const clientIP = request.headers.get('x-client-ip');
-  
+
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  
+
   return realIP || clientIP || undefined;
 }
