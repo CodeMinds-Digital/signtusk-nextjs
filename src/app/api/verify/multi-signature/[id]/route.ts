@@ -19,7 +19,7 @@ export async function GET(
       );
     }
 
-    // Get multi-signature request with all related data
+    // Get multi-signature request
     const { data: multiSigRequest, error: multiSigError } = await supabase
       .from('multi_signature_requests')
       .select(`
@@ -32,26 +32,7 @@ export async function GET(
         signing_type,
         required_signers,
         current_signers,
-        documents (
-          id,
-          file_name,
-          file_size,
-          file_type,
-          original_hash,
-          signed_hash,
-          public_url,
-          created_at,
-          metadata
-        ),
-        required_signers (
-          id,
-          signer_custom_id,
-          signing_order,
-          status,
-          signed_at,
-          signature,
-          signature_metadata
-        )
+        document_id
       `)
       .eq('id', id)
       .single();
@@ -63,8 +44,56 @@ export async function GET(
       );
     }
 
+    // Get the document separately
+    const { data: document, error: documentError } = await supabase
+      .from('documents')
+      .select(`
+        id,
+        file_name,
+        file_size,
+        file_type,
+        original_hash,
+        signed_hash,
+        public_url,
+        signed_public_url,
+        status,
+        created_at,
+        metadata
+      `)
+      .eq('id', multiSigRequest.document_id)
+      .single();
+
+    if (documentError || !document) {
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get required signers
+    const { data: requiredSigners, error: signersError } = await supabase
+      .from('required_signers')
+      .select(`
+        id,
+        signer_custom_id,
+        signing_order,
+        status,
+        signed_at,
+        signature,
+        signature_metadata
+      `)
+      .eq('multi_signature_request_id', id)
+      .order('signing_order', { ascending: true });
+
+    if (signersError) {
+      return NextResponse.json(
+        { error: 'Failed to fetch signers' },
+        { status: 500 }
+      );
+    }
+
     // Process signers data
-    const signers = (multiSigRequest.required_signers || []).map((signer: any) => ({
+    const signers = (requiredSigners || []).map((signer: any) => ({
       id: signer.id,
       signerCustomId: signer.signer_custom_id,
       signingOrder: signer.signing_order,
@@ -93,17 +122,24 @@ export async function GET(
         currentSigners: multiSigRequest.current_signers
       },
       document: {
-        id: multiSigRequest.documents?.[0]?.id,
-        fileName: multiSigRequest.documents?.[0]?.file_name,
-        fileSize: multiSigRequest.documents?.[0]?.file_size,
-        fileType: multiSigRequest.documents?.[0]?.file_type,
-        originalHash: multiSigRequest.documents?.[0]?.original_hash,
-        signedHash: multiSigRequest.documents?.[0]?.signed_hash,
-        publicUrl: multiSigRequest.documents?.[0]?.public_url,
-        uploadDate: multiSigRequest.documents?.[0]?.created_at,
-        metadata: multiSigRequest.documents?.[0]?.metadata
+        id: document.id,
+        fileName: document.file_name,
+        fileSize: document.file_size,
+        fileType: document.file_type,
+        originalHash: document.original_hash,
+        signedHash: document.signed_hash,
+        publicUrl: document.public_url,
+        signedPublicUrl: document.signed_public_url,
+        status: document.status,
+        uploadDate: document.created_at,
+        metadata: document.metadata
       },
       signers: signers.sort((a: any, b: any) => a.signingOrder - b.signingOrder),
+      progress: {
+        completed: completedSigners.length,
+        total: totalSigners,
+        percentage: totalSigners > 0 ? Math.round((completedSigners.length / totalSigners) * 100) : 0
+      },
       verification: {
         isValid: isFullyExecuted,
         isPartiallyExecuted: completedSigners.length > 0 && completedSigners.length < totalSigners,
@@ -118,7 +154,7 @@ export async function GET(
         scannedAt: new Date().toISOString(),
         verificationMethod: 'Multi-Signature QR Code',
         multiSignatureRequestId: id,
-        documentHash: multiSigRequest.documents?.[0]?.original_hash
+        documentHash: document.original_hash
       },
       timeline: signers.map((signer: any) => ({
         order: signer.signingOrder + 1,
