@@ -228,7 +228,7 @@ export default function IntegratedDocumentSigning() {
       );
 
       // Create blob from signed PDF
-      const signedPdfBlob = new Blob([signedPdfBytes], { type: 'application/pdf' });
+      const signedPdfBlob = new Blob([new Uint8Array(signedPdfBytes)], { type: 'application/pdf' });
 
       // Generate new hash of signed PDF
       const signedFile = new File([signedPdfBlob], `signed_${selectedFile.name}`, { type: 'application/pdf' });
@@ -402,15 +402,15 @@ export default function IntegratedDocumentSigning() {
               return (
                 <div key={step} className="flex items-center">
                   <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
-                      status === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
-                        'bg-gray-600 border-gray-600 text-gray-300'
+                    status === 'current' ? 'bg-purple-500 border-purple-500 text-white' :
+                      'bg-gray-600 border-gray-600 text-gray-300'
                     }`}>
                     <span className="text-lg">{icon}</span>
                   </div>
                   <div className="ml-3">
                     <p className={`font-semibold text-sm ${status === 'completed' ? 'text-green-400' :
-                        status === 'current' ? 'text-purple-400' :
-                          'text-gray-400'
+                      status === 'current' ? 'text-purple-400' :
+                        'text-gray-400'
                       }`}>
                       {label}
                     </p>
@@ -740,7 +740,7 @@ export default function IntegratedDocumentSigning() {
                     <div className="text-right">
                       <p className="text-gray-400 text-sm">Size: {formatFileSize(doc.file_size)}</p>
                       <p className={`text-sm ${doc.status === 'signed' ? 'text-green-400' :
-                          doc.status === 'uploaded' ? 'text-yellow-400' : 'text-gray-400'
+                        doc.status === 'uploaded' ? 'text-yellow-400' : 'text-gray-400'
                         }`}>
                         📊 {doc.status?.toUpperCase()}
                       </p>

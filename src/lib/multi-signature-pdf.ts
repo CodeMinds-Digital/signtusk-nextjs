@@ -242,7 +242,7 @@ export async function generateMultiSignaturePDF(
 
     // Save the PDF
     const pdfBytes = await pdfDoc.save();
-    return new Blob([pdfBytes], { type: 'application/pdf' });
+    return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
 
   } catch (error) {
     console.error('Error generating multi-signature PDF:', error);
@@ -368,7 +368,7 @@ export async function generateMultiSignatureFinalPDF(params: {
     console.log('📄 Multi-signature PDF generated, size:', finalPdfBytes.length, 'bytes');
 
     // Create blob from PDF bytes
-    const signedPdfBlob = new Blob([finalPdfBytes], { type: 'application/pdf' });
+    const signedPdfBlob = new Blob([new Uint8Array(finalPdfBytes)], { type: 'application/pdf' });
 
 
 
