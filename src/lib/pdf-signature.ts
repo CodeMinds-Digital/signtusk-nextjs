@@ -429,7 +429,7 @@ export async function generateSignedPDF(
     // Add signatures to PDF with original hash for verification
     const signedPdfBytes = await addSignaturesToPDF(originalBytes, signatures, documentHash);
 
-    return new Blob([signedPdfBytes], { type: 'application/pdf' });
+    return new Blob([new Uint8Array(signedPdfBytes)], { type: 'application/pdf' });
   } catch (error) {
     console.error('Error generating signed PDF:', error);
     throw new Error('Failed to generate signed PDF');
